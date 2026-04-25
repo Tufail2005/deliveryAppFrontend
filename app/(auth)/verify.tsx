@@ -1,9 +1,9 @@
 import { useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import AuthLayout from "../../src/compoenets/AuthLayout";
-import OtpInput from "../../src/compoenets/OtpInput";
-import PrimaryButton from "../../src/compoenets/PrimaryButton";
+import AuthLayout from "../../src/components/AuthLayout";
+import OtpInput from "../../src/components/OtpInput";
+import PrimaryButton from "../../src/components/PrimaryButton";
 
 export default function VerifyScreen() {
   const { email } = useLocalSearchParams<{ email: string }>();

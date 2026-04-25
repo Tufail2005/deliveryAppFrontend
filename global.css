@@ -6,28 +6,29 @@
 
 @theme {
   /* ── Primary / Brand ── */
-  --color-primary: #ff863b; /* orange CTA buttons, active icons */
-  --color-primary-alt: #f55002; /* deeper orange variant */
-  --color-primary-light: #ff7259; /* soft orange / badges */
+  --color-primary:        #FF863B;   /* orange CTA buttons, active icons */
+  --color-primary-alt:    #F55002;   /* deeper orange variant */
+  --color-primary-light:  #FF7259;   /* soft orange / badges */
 
   /* ── Backgrounds ── */
-  --color-bg: #ffffff; /* main screen background */
-  --color-bg-dark: #2e3236; /* dark card / top nav dark mode */
-  --color-bg-surface: #242424; /* bottom sheets, dark surface */
-  --color-bg-card: #2a2e33; /* restaurant cards dark variant */
-  --color-bg-input: #3e444e; /* input fields dark */
+  --color-bg:             #FFFFFF;   /* main screen background */
+  --color-bg-dark:        #2E3236;   /* dark card / top nav dark mode */
+  --color-bg-surface:     #242424;   /* bottom sheets, dark surface */
+  --color-bg-card:        #2A2E33;   /* restaurant cards dark variant */
+  --color-bg-input:       #3E444E;   /* input fields dark */
 
   /* ── Text ── */
-  --color-text: #0d0d0d; /* primary body text */
-  --color-text-white: #ffffff; /* text on dark backgrounds */
-  --color-text-muted: #3e444e; /* secondary / placeholder text */
+  --color-text:           #0D0D0D;   /* primary body text */
+  --color-text-white:     #FFFFFF;   /* text on dark backgrounds */
+  --color-text-muted:     #3E444E;   /* secondary / placeholder text */
 
   /* ── Accents ── */
-  --color-accent-blue: #0db8f3; /* info badges, highlights */
-  --color-accent-green: #0dcc7b; /* free delivery badge, success */
-  --color-accent-purple: #a753f3; /* promo / offer tags */
+  --color-accent-blue:    #0DB8F3;   /* info badges, highlights */
+  --color-accent-green:   #0DCC7B;   /* free delivery badge, success */
+  --color-accent-purple:  #A753F3;   /* promo / offer tags */
 
   /* ── Utility ── */
-  --color-border: #3e444e;
-  --color-overlay: rgba(255, 255, 255, 0.69); /* 69% white overlay */
+  --color-border:         #3E444E;
+  --color-overlay:        rgba(255, 255, 255, 0.69);  /* 69% white overlay */
 }
+

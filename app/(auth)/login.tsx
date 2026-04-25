@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import AuthLayout from "../../src/compoenets/AuthLayout";
-import FormInput from "../../src/compoenets/FormInput";
-import PrimaryButton from "../../src/compoenets/PrimaryButton";
+import AuthLayout from "../../src/components/AuthLayout";
+import FormInput from "../../src/components/FormInput";
+import PrimaryButton from "../../src/components/PrimaryButton";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
