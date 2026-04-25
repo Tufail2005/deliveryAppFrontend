@@ -1,142 +1,52 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import AuthLayout from "../../src/compoenets/AuthLayout";
+import OtpInput from "../../src/compoenets/OtpInput";
+import PrimaryButton from "../../src/compoenets/PrimaryButton";
 
 export default function VerifyScreen() {
-  // Catch the phone parameter passed from the login screen
-  const { phone } = useLocalSearchParams<{ phone: string }>();
-
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [otp, setOtp] = useState("");
-  const router = useRouter();
 
-  const handleVerifyOtp = () => {
-    if (otp.length !== 6) {
-      alert("Please enter the 6-digit OTP");
-      return;
-    }
-
-    // TODO: Wire this up to POST /api/auth/verify-otp
-    console.log(`Verifying OTP: ${otp} for Phone: ${phone}`);
-
-    // MOCK NAVIGATION: We will replace this with real logic later
-    alert("Login Successful! (Mock)");
+  const handleVerify = () => {
+    console.log("Verifying code:", otp);
+    // Add logic to verify code with backend here
   };
 
+  const SubtitleComponent = () => (
+    <Text className="text-gray-300 text-center text-sm leading-5">
+      We have sent a code to your email{"\n"}
+      <Text className="font-bold text-text-white">
+        {email || "example@gmail.com"}
+      </Text>
+    </Text>
+  );
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.formContainer}>
-        {/* Back Button */}
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.title}>Enter OTP 🔒</Text>
-        <Text style={styles.subtitle}>
-          We sent a 6-digit code to +91 {phone}
+    <AuthLayout title="Verification" subtitle={<SubtitleComponent />}>
+      {/* Header Row for OTP */}
+      <View className="flex-row justify-between items-end mb-2 w-full">
+        <Text className="text-xs font-bold text-text-muted uppercase tracking-wider">
+          Code
         </Text>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="• • • • • •"
-            keyboardType="numeric"
-            maxLength={6}
-            value={otp}
-            onChangeText={setOtp}
-            autoFocus
-            textAlign="center"
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.button, otp.length === 6 ? styles.buttonActive : null]}
-          onPress={handleVerifyOtp}
-          disabled={otp.length < 6}
-        >
-          <Text style={styles.buttonText}>Verify & Login</Text>
+        <TouchableOpacity>
+          <Text className="text-xs text-text-muted font-medium">
+            <Text className="text-text font-bold underline decoration-text">
+              Resend
+            </Text>{" "}
+            in 50sec
+          </Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+
+      <OtpInput length={4} onComplete={setOtp} />
+
+      <PrimaryButton
+        title="Verify"
+        onPress={handleVerify}
+        disabled={otp.length !== 4}
+      />
+    </AuthLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  formContainer: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  backButton: {
-    position: "absolute",
-    top: 50,
-    left: 24,
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: "#6B7280",
-    fontWeight: "bold",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginBottom: 32,
-    lineHeight: 24,
-  },
-  inputContainer: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 64,
-    marginBottom: 24,
-    backgroundColor: "#F9FAFB",
-    justifyContent: "center",
-  },
-  input: {
-    flex: 1,
-    fontSize: 24,
-    letterSpacing: 8,
-    color: "#111827",
-    fontWeight: "bold",
-  },
-  button: {
-    height: 56,
-    backgroundColor: "#D1D5DB",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonActive: {
-    backgroundColor: "#EF4444",
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-});
