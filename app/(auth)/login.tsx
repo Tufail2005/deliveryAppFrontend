@@ -5,14 +5,14 @@ import FormInput from "../../src/components/FormInput";
 import PrimaryButton from "../../src/components/PrimaryButton";
 
 export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const router = useRouter();
 
   const handleSendCode = () => {
     // Add logic to hit your backend API here
     router.push({
       pathname: "/(auth)/verify",
-      params: { email },
+      params: { phoneNumber },
     });
   };
 
@@ -22,18 +22,18 @@ export default function ForgotPasswordScreen() {
       subtitle="Please enter your phone number to receive a verification code."
     >
       <FormInput
-        label="Email"
-        placeholder="example@gmail.com"
-        keyboardType="email-address"
+        label="Phone Number"
+        placeholder="123-456-7890"
+        keyboardType="phone-pad"
         autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
+        value={phoneNumber}
+        onChangeText={setPhoneNumber}
       />
 
       <PrimaryButton
         title="Send Code"
         onPress={handleSendCode}
-        disabled={!email.includes("@")}
+        disabled={!phoneNumber}
       />
     </AuthLayout>
   );
