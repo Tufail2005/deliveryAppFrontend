@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 
 interface OtpInputProps {
   length?: number;
@@ -14,18 +14,13 @@ export default function OtpInput({ length = 4, onComplete }: OtpInputProps) {
     const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
-
-    // Pass full string to parent
     onComplete(newCode.join(""));
-
-    // Auto-advance to next input
     if (text && index < length - 1) {
       inputs.current[index + 1].focus();
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
-    // Auto-backspace to previous input
     if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
       inputs.current[index - 1].focus();
     }
@@ -37,11 +32,9 @@ export default function OtpInput({ length = 4, onComplete }: OtpInputProps) {
         <TextInput
           key={index}
           ref={(ref) => {
-            if (ref) {
-              inputs.current[index] = ref;
-            }
+            if (ref) inputs.current[index] = ref;
           }}
-          className="w-[70px] h-[70px] bg-gray-100 rounded-xl text-center text-2xl font-bold text-text"
+          style={styles.input}
           keyboardType="number-pad"
           maxLength={1}
           value={digit}
@@ -52,3 +45,17 @@ export default function OtpInput({ length = 4, onComplete }: OtpInputProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  input: {
+    width: 70,
+    height: 70,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    textAlign: "center",
+    textAlignVertical: "center",
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#0D0D0D",
+  },
+});
