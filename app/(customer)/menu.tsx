@@ -1,18 +1,18 @@
-import React from "react";
+import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
 import {
-  FlatList,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    FlatList,
+    SafeAreaView,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import BackButton from "../../src/components/BackButton";
-import FoodItemCard, { FoodItem } from "../../src/components/FoodItemCard";
-import VisualCategoryCard from "../../src/components/VisualCategoryCard";
+import CategoryPill from "../../src/components/CategoryPill";
+import ImageCategoryCard from "../../src/components/ImageCategoryCard";
+import RestaurantCard, { Restaurant } from "../../src/components/RestaurantCard";
 
-// --- DUMMY DATA ---
-const VISUAL_CATEGORIES = [
+const CATEGORIES = [
   {
     id: "1",
     title: "Pizza",
@@ -31,84 +31,133 @@ const VISUAL_CATEGORIES = [
     imageUrl:
       "https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=500&q=80",
   },
+  {
+    id: "4",
+    title: "Drinks",
+    imageUrl:
+      "https://images.unsplash.com/photo-1542444459-db22c1d5ed3f?w=500&q=80",
+  },
 ];
 
-const FOOD_ITEMS: FoodItem[] = [
+const RESTAURANTS: Restaurant[] = [
   {
     id: "1",
-    name: "Farmhouse Pizza",
-    price: 399,
-    description: "A combination of onion, capsicum, tomato & grilled mushroom.",
+    name: "The Grand Kitchen",
+    cuisine: "North Indian • Fast Food",
+    rating: 4.8,
+    eta: "25-30 min",
+    costForTwo: "₹450 for two",
     imageUrl:
-      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80",
-    isVeg: true,
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80",
+    badge: "Top Rated",
+    offer: "20% off on first order",
   },
   {
     id: "2",
-    name: "Spicy Chicken Burger",
-    price: 249,
-    description:
-      "Crispy fried chicken patty with spicy mayo and fresh lettuce.",
+    name: "Burger Lab",
+    cuisine: "Burgers • Fries",
+    rating: 4.6,
+    eta: "18-22 min",
+    costForTwo: "₹320 for two",
     imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80",
-    isVeg: false,
+      "https://images.unsplash.com/photo-1605477019003-2e533f64db7f?w=500&q=80",
+    badge: "Popular",
+    offer: "Free soft drink",
   },
   {
     id: "3",
-    name: "Choco Lava Cake",
-    price: 129,
-    description: "Chocolate lover's delight with a gooey chocolate center.",
+    name: "Sweet Cravings",
+    cuisine: "Desserts • Beverages",
+    rating: 4.9,
+    eta: "12-18 min",
+    costForTwo: "₹280 for two",
     imageUrl:
-      "https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=500&q=80",
-    isVeg: true,
+      "https://images.unsplash.com/photo-1525755662778-989d0524087e?w=500&q=80",
+    badge: "Trending",
+    offer: "Buy 1 get 1 on shakes",
   },
 ];
 
 export default function MenuScreen() {
-  // This function renders the top half of the screen (Header + Categories)
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState("1");
+
+  const filteredRestaurants = useMemo(
+    () =>
+      RESTAURANTS.filter((restaurant) => {
+        if (activeCategory === "1") return true;
+        if (activeCategory === "2") return restaurant.cuisine.includes("Burgers");
+        if (activeCategory === "3") return restaurant.cuisine.includes("Desserts");
+        if (activeCategory === "4") return restaurant.cuisine.includes("Beverages") || restaurant.name.includes("Kitchen");
+        return true;
+      }),
+    [activeCategory]
+  );
+
   const renderHeader = () => (
-    <View>
-      {/* 1. Restaurant Header */}
-      <View className="px-4 py-2 flex-row items-center gap-4 pb-6">
-        <BackButton />
+    <View className="px-6 pt-6">
+      <View className="flex-row justify-between items-center mb-6">
         <View>
-          <Text className="text-2xl font-bold text-text">
-            The Grand Kitchen
-          </Text>
-          <Text className="text-sm text-text-muted">
-            North Indian, Fast Food • 4.5 ⭐
-          </Text>
+          <Text className="text-sm text-text-muted">Good afternoon</Text>
+          <Text className="text-3xl font-bold text-text">Explore restaurants</Text>
         </View>
+        <TouchableOpacity className="h-14 w-14 rounded-3xl bg-white items-center justify-center shadow-sm">
+          <Text className="text-xl">📍</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* 2. Visual Categories Section */}
-      <View className="px-4 mb-8">
-        <View className="flex-row justify-between items-end mb-4">
-          <Text className="text-xl font-bold text-text">The Categories</Text>
-          <TouchableOpacity>
-            <Text className="text-sm font-bold text-primary">View All</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="overflow-visible"
+      <View className="flex-row items-center justify-between mb-5">
+        <TouchableOpacity
+          onPress={() => router.push("/(customer)/orders")}
+          className="rounded-3xl bg-white px-4 py-3 shadow-sm border border-gray-100"
         >
-          {VISUAL_CATEGORIES.map((cat) => (
-            <VisualCategoryCard
-              key={cat.id}
-              title={cat.title}
-              imageUrl={cat.imageUrl}
-              onPress={() => console.log(`Selected ${cat.title}`)}
-            />
-          ))}
-        </ScrollView>
+          <Text className="text-sm font-semibold text-text">Orders</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/(customer)/profile")}
+          className="rounded-3xl bg-white px-4 py-3 shadow-sm border border-gray-100"
+        >
+          <Text className="text-sm font-semibold text-text">Profile</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* 3. Recommended Title (Right before the FlatList items start) */}
-      <View className="px-4 mb-2">
-        <Text className="text-xl font-bold text-text">Recommended</Text>
+      <Text className="text-base text-text-muted mb-4">
+        Choose a category and order from the best nearby kitchens.
+      </Text>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="mb-6"
+      >
+        {CATEGORIES.map((category) => (
+          <CategoryPill
+            key={category.id}
+            title={category.title}
+            imageUrl={category.imageUrl}
+            isActive={activeCategory === category.id}
+            onPress={() => setActiveCategory(category.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <Text className="text-xl font-bold text-text mb-4">Featured collections</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
+        {CATEGORIES.map((category) => (
+          <ImageCategoryCard
+            key={category.id}
+            title={category.title}
+            imageUrl={category.imageUrl}
+            onPress={() => setActiveCategory(category.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-2xl font-bold text-text">Popular restaurants</Text>
+        <TouchableOpacity onPress={() => router.push("/(customer)/cart")}> 
+          <Text className="text-sm font-semibold text-primary">View cart</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -116,17 +165,31 @@ export default function MenuScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <FlatList
-        data={FOOD_ITEMS}
+        data={filteredRestaurants}
         keyExtractor={(item) => item.id}
-        // Inject the entire top UI above the list of food items
         ListHeaderComponent={renderHeader}
-        // Render the food items we built earlier
         renderItem={({ item }) => (
-          <View className="px-4">
-            <FoodItemCard item={item} />
+          <View className="px-6">
+            <RestaurantCard
+              restaurant={item}
+              onPress={() =>
+                router.push({
+                  pathname: "/(customer)/restaurant/[id]",
+                  params: {
+                    id: item.id,
+                    name: item.name,
+                    imageUrl: item.imageUrl,
+                    cuisine: item.cuisine,
+                    rating: item.rating.toString(),
+                    eta: item.eta,
+                    costForTwo: item.costForTwo,
+                  },
+                })
+              }
+            />
           </View>
         )}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>

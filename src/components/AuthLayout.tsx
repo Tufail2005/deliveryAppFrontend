@@ -1,10 +1,10 @@
 import React from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    Text,
+    View,
 } from "react-native";
 import BackButton from "./BackButton";
 
@@ -21,25 +21,19 @@ export default function AuthLayout({
 }: AuthLayoutProps) {
   return (
     <View className="flex-1 bg-bg-dark">
-      {/* Dark Header Section */}
-      <SafeAreaView>
-        <View className="px-10 pt-8 pb-12">
+      <SafeAreaView className="bg-primary px-6 pb-8">
+        <View className="pt-4">
           <BackButton />
-          <View className="mt-20 mb-10 items-center px-4">
-            <Text className="text-text-white text-3xl font-bold mb-3">
-              {title}
-            </Text>
-            <Text className="text-gray-100 text-center text-sm leading-5">
-              {subtitle}
-            </Text>
-          </View>
+        </View>
+        <View className="mt-14 mb-8">
+          <Text className="text-4xl font-extrabold text-white mb-4">{title}</Text>
+          <Text className="text-base text-white/80 leading-7">{subtitle}</Text>
         </View>
       </SafeAreaView>
 
-      {/* Overlapping White Bottom Sheet */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 bg-bg rounded-t-[32px] px-6 pt-25 shadow-lg"
+        className="flex-1 bg-bg rounded-t-[32px] px-6 pt-8"
       >
         {children}
       </KeyboardAvoidingView>

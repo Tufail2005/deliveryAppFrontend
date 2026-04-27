@@ -15,7 +15,6 @@ export default function FoodItemCard({ item }: { item: FoodItem }) {
   const router = useRouter();
 
   const handlePress = () => {
-    // Navigate to the dynamic item detail page, passing the item data
     router.push({
       pathname: "/(customer)/item/[id]",
       params: {
@@ -31,43 +30,22 @@ export default function FoodItemCard({ item }: { item: FoodItem }) {
   return (
     <TouchableOpacity
       onPress={handlePress}
-      className="flex-row justify-between py-6 border-b border-gray-100 bg-bg"
+      activeOpacity={0.9}
+      className="mb-4 rounded-[28px] bg-white p-4 shadow-sm border border-gray-100 flex-row"
     >
-      {/* Left Column: Details */}
-      <View className="flex-1 pr-4 justify-center">
-        {/* Veg / Non-Veg Indicator */}
-        <View
-          className={`w-4 h-4 border items-center justify-center mb-2 ${
-            item.isVeg ? "border-accent-green" : "border-red-500"
-          }`}
-        >
-          <View
-            className={`w-2 h-2 rounded-full ${
-              item.isVeg ? "bg-accent-green" : "bg-red-500"
-            }`}
-          />
+      <View className="flex-1 pr-4 justify-between">
+        <View>
+          <Text className="text-lg font-bold text-text mb-1">{item.name}</Text>
+          <Text className="text-sm text-text-muted leading-6" numberOfLines={2}>
+            {item.description}
+          </Text>
         </View>
-
-        <Text className="text-lg font-bold text-text mb-1">{item.name}</Text>
-        <Text className="text-base font-semibold text-text mb-2">
-          ₹{item.price}
-        </Text>
-        <Text className="text-sm text-text-muted leading-5" numberOfLines={2}>
-          {item.description}
-        </Text>
+        <Text className="mt-4 text-lg font-bold text-primary">₹{item.price}</Text>
       </View>
-
-      {/* Right Column: Image & Add Button */}
-      <View className="relative w-36 h-36">
-        <Image
-          source={{ uri: item.imageUrl }}
-          className="w-full h-full rounded-2xl bg-gray-100"
-        />
-        {/* Absolute positioned ADD button overlapping the bottom of the image */}
-        <TouchableOpacity className="absolute -bottom-4 self-center w-28 h-10 bg-white rounded-xl shadow-md border border-gray-100 items-center justify-center">
-          <Text className="text-primary font-bold text-lg">ADD</Text>
-        </TouchableOpacity>
-      </View>
+      <Image
+        source={{ uri: item.imageUrl }}
+        className="w-28 h-28 rounded-3xl bg-gray-100"
+      />
     </TouchableOpacity>
   );
 }
