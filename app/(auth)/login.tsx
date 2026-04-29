@@ -4,12 +4,11 @@ import AuthLayout from "../../src/components/AuthLayout";
 import FormInput from "../../src/components/FormInput";
 import PrimaryButton from "../../src/components/PrimaryButton";
 
-export default function ForgotPasswordScreen() {
+export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const router = useRouter();
 
-  const handleSendCode = () => {
-    // Add logic to hit your backend API here
+  const handleContinue = () => {
     router.push({
       pathname: "/(auth)/verify",
       params: { phoneNumber },
@@ -18,22 +17,21 @@ export default function ForgotPasswordScreen() {
 
   return (
     <AuthLayout
-      title="Login"
-      subtitle="Please enter your phone number to receive a verification code."
+      title="Welcome back"
+      subtitle="Enter your phone number to continue and discover nearby restaurants."
     >
       <FormInput
         label="Phone Number"
-        placeholder="123-456-7890"
+        placeholder="9876543210"
         keyboardType="phone-pad"
         autoCapitalize="none"
         value={phoneNumber}
         onChangeText={setPhoneNumber}
       />
-
       <PrimaryButton
-        title="Send Code"
-        onPress={handleSendCode}
-        disabled={!phoneNumber}
+        title="Continue"
+        onPress={handleContinue}
+        disabled={phoneNumber.length < 10}
       />
     </AuthLayout>
   );
