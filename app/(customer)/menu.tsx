@@ -1,52 +1,31 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-    FlatList,
-    SafeAreaView,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  SafeAreaView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import CategoryPill from "../../src/components/CategoryPill";
-import ImageCategoryCard from "../../src/components/ImageCategoryCard";
 import RestaurantCard, { Restaurant } from "../../src/components/RestaurantCard";
 
 const CATEGORIES = [
-  {
-    id: "1",
-    title: "Pizza",
-    imageUrl:
-      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80",
-  },
-  {
-    id: "2",
-    title: "Burger",
-    imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80",
-  },
-  {
-    id: "3",
-    title: "Desserts",
-    imageUrl:
-      "https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=500&q=80",
-  },
-  {
-    id: "4",
-    title: "Drinks",
-    imageUrl:
-      "https://images.unsplash.com/photo-1542444459-db22c1d5ed3f?w=500&q=80",
-  },
+  { id: "1", title: "All", icon: "flame-outline" },
+  { id: "2", title: "Hot Dog", icon: "fast-food-outline" },
+  { id: "3", title: "Burger", icon: "fast-food-outline" },
+  { id: "4", title: "Pizza", icon: "pizza-outline" },
 ];
 
 const RESTAURANTS: Restaurant[] = [
   {
     id: "1",
-    name: "The Grand Kitchen",
-    cuisine: "North Indian • Fast Food",
-    rating: 4.8,
-    eta: "25-30 min",
-    costForTwo: "₹450 for two",
+    name: "Rose Garden Restaurant",
+    cuisine: "Burger • Chicken • Rice • Wings",
+    rating: 4.7,
+    eta: "20 min",
+    costForTwo: "Free delivery",
     imageUrl:
       "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80",
     badge: "Top Rated",
@@ -54,109 +33,99 @@ const RESTAURANTS: Restaurant[] = [
   },
   {
     id: "2",
-    name: "Burger Lab",
-    cuisine: "Burgers • Fries",
-    rating: 4.6,
-    eta: "18-22 min",
-    costForTwo: "₹320 for two",
+    name: "Café Bloom",
+    cuisine: "Salads • Healthy • Bowls",
+    rating: 4.5,
+    eta: "18 min",
+    costForTwo: "Free delivery",
     imageUrl:
-      "https://images.unsplash.com/photo-1605477019003-2e533f64db7f?w=500&q=80",
-    badge: "Popular",
-    offer: "Free soft drink",
-  },
-  {
-    id: "3",
-    name: "Sweet Cravings",
-    cuisine: "Desserts • Beverages",
-    rating: 4.9,
-    eta: "12-18 min",
-    costForTwo: "₹280 for two",
-    imageUrl:
-      "https://images.unsplash.com/photo-1525755662778-989d0524087e?w=500&q=80",
-    badge: "Trending",
-    offer: "Buy 1 get 1 on shakes",
+      "https://images.unsplash.com/photo-1521389508051-d7ffb5dc8c5d?w=500&q=80",
+    badge: "Fresh",
+    offer: "Healthy picks",
   },
 ];
 
 export default function MenuScreen() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("1");
+  const [search, setSearch] = useState("");
 
   const filteredRestaurants = useMemo(
     () =>
       RESTAURANTS.filter((restaurant) => {
+        const query = search.toLowerCase();
+        const matchesSearch =
+          restaurant.name.toLowerCase().includes(query) ||
+          restaurant.cuisine.toLowerCase().includes(query);
+        if (search && !matchesSearch) return false;
         if (activeCategory === "1") return true;
-        if (activeCategory === "2") return restaurant.cuisine.includes("Burgers");
-        if (activeCategory === "3") return restaurant.cuisine.includes("Desserts");
-        if (activeCategory === "4") return restaurant.cuisine.includes("Beverages") || restaurant.name.includes("Kitchen");
-        return true;
+        return restaurant.cuisine.toLowerCase().includes(activeCategory === "2" ? "hot dog" : activeCategory === "3" ? "burger" : "pizza");
       }),
-    [activeCategory]
+    [activeCategory, search]
   );
 
   const renderHeader = () => (
     <View className="px-6 pt-6">
-      <View className="flex-row justify-between items-center mb-6">
+      <View className="flex-row items-center justify-between mb-6">
         <View>
-          <Text className="text-sm text-text-muted">Good afternoon</Text>
-          <Text className="text-3xl font-bold text-text">Explore restaurants</Text>
+          <Text className="text-xs uppercase tracking-[0.3em] text-primary font-bold">
+            Deliver to
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(customer)/addresses")}
+            className="mt-3 flex-row items-center gap-2"
+          >
+            <Text className="text-base font-bold text-text">Halal Lab office</Text>
+            <Ionicons name="chevron-down" size={18} color="#0D0D0D" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity className="h-14 w-14 rounded-3xl bg-white items-center justify-center shadow-sm">
-          <Text className="text-xl">📍</Text>
+
+        <TouchableOpacity
+          onPress={() => router.push("/(customer)/cart")}
+          className="h-14 w-14 rounded-3xl bg-black items-center justify-center shadow-sm"
+        >
+          <Ionicons name="cart" size={24} color="#fff" />
+          <View className="absolute -right-1 -top-1 h-6 w-6 rounded-full bg-primary items-center justify-center">
+            <Text className="text-xs font-bold text-white">2</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
-      <View className="flex-row items-center justify-between mb-5">
-        <TouchableOpacity
-          onPress={() => router.push("/(customer)/orders")}
-          className="rounded-3xl bg-white px-4 py-3 shadow-sm border border-gray-100"
-        >
-          <Text className="text-sm font-semibold text-text">Orders</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.push("/(customer)/profile")}
-          className="rounded-3xl bg-white px-4 py-3 shadow-sm border border-gray-100"
-        >
-          <Text className="text-sm font-semibold text-text">Profile</Text>
-        </TouchableOpacity>
+      <Text className="text-3xl font-bold text-text">Hey Halal,</Text>
+      <Text className="text-3xl font-bold text-text">Good Afternoon!</Text>
+
+      <View className="mt-6 rounded-3xl bg-white px-4 py-4 shadow-sm border border-gray-100 flex-row items-center gap-3">
+        <Ionicons name="search" size={20} color="#D1D5DB" />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search dishes, restaurants"
+          className="flex-1 text-base text-text"
+          placeholderTextColor="#9CA3AF"
+        />
       </View>
 
-      <Text className="text-base text-text-muted mb-4">
-        Choose a category and order from the best nearby kitchens.
-      </Text>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="mb-6"
-      >
+      <View className="mt-6 flex-row items-center gap-3">
         {CATEGORIES.map((category) => (
-          <CategoryPill
+          <TouchableOpacity
             key={category.id}
-            title={category.title}
-            imageUrl={category.imageUrl}
-            isActive={activeCategory === category.id}
             onPress={() => setActiveCategory(category.id)}
-          />
+            className={`rounded-full px-4 py-3 flex-row items-center gap-2 ${
+              activeCategory === category.id ? "bg-primary" : "bg-gray-100"
+            }`}
+          >
+            <Ionicons name={category.icon as any} size={18} color={activeCategory === category.id ? "#fff" : "#374151"} />
+            <Text className={`${activeCategory === category.id ? "text-white" : "text-text"} font-semibold`}>
+              {category.title}
+            </Text>
+          </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
 
-      <Text className="text-xl font-bold text-text mb-4">Featured collections</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-        {CATEGORIES.map((category) => (
-          <ImageCategoryCard
-            key={category.id}
-            title={category.title}
-            imageUrl={category.imageUrl}
-            onPress={() => setActiveCategory(category.id)}
-          />
-        ))}
-      </ScrollView>
-
-      <View className="flex-row justify-between items-center mb-4">
-        <Text className="text-2xl font-bold text-text">Popular restaurants</Text>
-        <TouchableOpacity onPress={() => router.push("/(customer)/cart")}> 
-          <Text className="text-sm font-semibold text-primary">View cart</Text>
+      <View className="mt-8 flex-row items-center justify-between">
+        <Text className="text-xl font-bold text-text">Open Restaurants</Text>
+        <TouchableOpacity onPress={() => router.push("/(customer)/orders")}> 
+          <Text className="text-sm font-semibold text-primary">See all</Text>
         </TouchableOpacity>
       </View>
     </View>
