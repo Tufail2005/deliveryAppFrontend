@@ -5,6 +5,13 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import BackButton from "../../../src/components/BackButton";
 import PrimaryButton from "../../../src/components/PrimaryButton";
 import { useCart } from "../../../src/contexts/CartContext";
+import {
+  getRestaurantCoverUri,
+  RESTAURANT_COVER_BY_ID,
+} from "../../../src/constants/restaurantCovers";
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80";
 
 export default function RestaurantScreen() {
   const router = useRouter();
@@ -24,14 +31,20 @@ export default function RestaurantScreen() {
 
   const price = 32;
 
+  const bundledCover = id ? RESTAURANT_COVER_BY_ID[id as string] : undefined;
+  const cartThumbUri =
+    (id ? getRestaurantCoverUri(id as string) : undefined) ??
+    imageUrl ??
+    FALLBACK_IMAGE;
+
   const handleAddToCart = () => {
-    if (!id || !name || !imageUrl) return;
+    if (!id || !name) return;
     addToCart({
       id,
       name,
       price,
       quantity,
-      imageUrl,
+      imageUrl: cartThumbUri,
       isVeg: true,
     });
     router.push("/(customer)/cart");
@@ -42,8 +55,13 @@ export default function RestaurantScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="relative h-96 bg-gray-100">
           <Image
-            source={{ uri: imageUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80" }}
+            source={
+              bundledCover ?? {
+                uri: imageUrl || FALLBACK_IMAGE,
+              }
+            }
             className="w-full h-full"
+            resizeMode="cover"
           />
           <View className="absolute top-0 left-0 right-0 px-4 py-4 flex-row justify-between">
             <BackButton />
