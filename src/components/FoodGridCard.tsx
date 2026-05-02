@@ -14,13 +14,14 @@ export interface GridFoodItem {
 interface FoodGridCardProps {
   item: GridFoodItem;
   onPress: (item: GridFoodItem) => void;
+  className?: string;
 }
 
-export default function FoodGridCard({ item, onPress }: FoodGridCardProps) {
+export default function FoodGridCard({ item, onPress, className }: FoodGridCardProps) {
   return (
     <TouchableOpacity
       onPress={() => onPress(item)}
-      className="w-[47%] bg-white rounded-4xl mb-4 shadow-sm border border-gray-100 overflow-hidden"
+      className={`w-[47%] bg-white rounded-4xl mb-4 shadow-sm border border-gray-100 overflow-hidden ${className ?? ""}`}
     >
       <Image
         source={{ uri: item.imageUrl }}
