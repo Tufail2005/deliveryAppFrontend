@@ -2,10 +2,10 @@ import React from "react";
 import {
     KeyboardAvoidingView,
     Platform,
-    SafeAreaView,
     Text,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "./BackButton";
 
 interface AuthLayoutProps {
