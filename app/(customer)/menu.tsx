@@ -4,15 +4,13 @@ import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Image, // <-- Added Image import
-  SafeAreaView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import RestaurantCard, {
-  Restaurant,
-} from "../../src/components/RestaurantCard";
+import { SafeAreaView } from "react-native-safe-area-context";
+import RestaurantCard, { Restaurant } from "../../src/components/RestaurantCard";
 
 const CATEGORIES = [
   { id: "1", title: "All", icon: "flame-outline" },
