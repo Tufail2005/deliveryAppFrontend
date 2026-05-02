@@ -22,23 +22,35 @@ export default function AddAddressScreen() {
           Pick the map location and add your address details below.
         </Text>
 
-        <View className="mt-6 rounded-[32px] bg-gray-100 p-5 items-center justify-center">
-          <View className="h-48 w-full rounded-[32px] bg-white items-center justify-center shadow-sm border border-gray-200">
+        <View className="mt-6 rounded-4xl bg-gray-100 p-5 items-center justify-center">
+          <View className="h-48 w-full rounded-4xl bg-white items-center justify-center shadow-sm border border-gray-200">
             <Ionicons name="location-sharp" size={48} color="#FF863B" />
-            <Text className="mt-4 text-sm text-text-muted">Move to edit location</Text>
+            <Text className="mt-4 text-sm text-text-muted">
+              Move to edit location
+            </Text>
           </View>
           <View className="mt-4 w-full rounded-[28px] bg-white p-4 shadow-sm border border-gray-100">
             <View className="flex-row items-center gap-3">
               <Ionicons name="location-outline" size={20} color="#4B5563" />
-              <Text className="text-sm text-text">3235 Royal Ln. Mesa, New Jersey 34567</Text>
+              <Text className="text-sm text-text">
+                3235 Royal Ln. Mesa, New Jersey 34567
+              </Text>
             </View>
           </View>
         </View>
 
         <View className="mt-6 space-y-4">
           <FormInput label="Street" placeholder="Hason Nagar" />
-          <FormInput label="Post code" placeholder="34567" keyboardType="numeric" />
-          <FormInput label="Appartment" placeholder="345" keyboardType="numeric" />
+          <FormInput
+            label="Post code"
+            placeholder="34567"
+            keyboardType="numeric"
+          />
+          <FormInput
+            label="Appartment"
+            placeholder="345"
+            keyboardType="numeric"
+          />
 
           <Text className="text-sm font-bold text-text-muted uppercase tracking-[0.18em]">
             Label as
