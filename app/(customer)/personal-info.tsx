@@ -1,43 +1,84 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, Text, View } from "react-native";
-import BackButton from "../../src/components/BackButton";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import ProfileHeader from "../../src/components/ProfileHeader";
+import UserInfo from "../../src/components/UserInfo";
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
 
   return (
-    <View className="flex-1 bg-bg">
-      <View className="px-6 pt-6">
-        <BackButton />
-      </View>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
+      {/* Header with EDIT button */}
+      <ProfileHeader
+        title="Personal Info"
+        rightElement={
+          <TouchableOpacity>
+            <Text className="text-primary font-bold tracking-wider text-sm uppercase">
+              Edit
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
-      <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false}>
-        <Text className="text-3xl font-bold text-text">Personal Info</Text>
-        <Text className="mt-2 text-sm text-text-muted leading-6">
-          Review the personal details linked to your account.
-        </Text>
+      <ScrollView className="pt-4" showsVerticalScrollIndicator={false}>
+        <UserInfo
+          name="Vishal Khadok"
+          bio="I love fast food"
+          imageUrl="https://i.pravatar.cc/150?img=11"
+        />
 
-        <View className="mt-6 rounded-[32px] bg-white p-6 shadow-sm border border-gray-100">
-          <View className="items-center justify-center rounded-full bg-primary/10 h-24 w-24 self-center mb-6">
-            <Text className="text-4xl">👤</Text>
+        {/* Info Card */}
+        <View className="bg-white rounded-3xl mx-4 p-6 mt-4 shadow-sm border border-gray-100">
+          {/* Detail Row 1 */}
+          <View className="flex-row items-center mb-6">
+            <View className="w-12 h-12 rounded-full bg-primary/10 items-center justify-center mr-4">
+              <Ionicons name="person" size={20} color="#FF863B" />
+            </View>
+            <View>
+              <Text className="text-xs font-bold text-text-muted mb-1 uppercase tracking-[0.18em]">
+                Full Name
+              </Text>
+              <Text className="text-base font-bold text-text">
+                Vishal Khadok
+              </Text>
+            </View>
           </View>
 
-          {[
-            { label: "Full name", value: "Vishal Khadok" },
-            { label: "Email", value: "hello@halallab.co" },
-            { label: "Phone number", value: "+1 408-841-0926" },
-          ].map((field) => (
-            <View key={field.label} className="mb-5">
-              <Text className="text-xs uppercase tracking-[0.18em] text-text-muted mb-2">
-                {field.label}
-              </Text>
-              <View className="rounded-3xl bg-gray-100 px-4 py-4">
-                <Text className="text-base text-text">{field.value}</Text>
-              </View>
+          {/* Detail Row 2 */}
+          <View className="flex-row items-center mb-6">
+            <View className="w-12 h-12 rounded-full bg-primary/10 items-center justify-center mr-4">
+              <Ionicons name="mail" size={20} color="#FF863B" />
             </View>
-          ))}
+            <View>
+              <Text className="text-xs font-bold text-text-muted mb-1 uppercase tracking-[0.18em]">
+                Email
+              </Text>
+              <Text className="text-base font-bold text-text">
+                hello@halallab.co
+              </Text>
+            </View>
+          </View>
+
+          {/* Detail Row 3 */}
+          <View className="flex-row items-center">
+            <View className="w-12 h-12 rounded-full bg-primary/10 items-center justify-center mr-4">
+              <Ionicons name="call" size={20} color="#FF863B" />
+            </View>
+            <View>
+              <Text className="text-xs font-bold text-text-muted mb-1 uppercase tracking-[0.18em]">
+                Phone Number
+              </Text>
+              <Text className="text-base font-bold text-text">
+                408-841-0926
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

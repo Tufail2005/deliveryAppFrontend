@@ -3,13 +3,16 @@ import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
+  Image, // <-- Added Image import
   SafeAreaView,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-import RestaurantCard, { Restaurant } from "../../src/components/RestaurantCard";
+import RestaurantCard, {
+  Restaurant,
+} from "../../src/components/RestaurantCard";
 
 const CATEGORIES = [
   { id: "1", title: "All", icon: "flame-outline" },
@@ -59,7 +62,15 @@ export default function MenuScreen() {
           restaurant.cuisine.toLowerCase().includes(query);
         if (search && !matchesSearch) return false;
         if (activeCategory === "1") return true;
-        return restaurant.cuisine.toLowerCase().includes(activeCategory === "2" ? "hot dog" : activeCategory === "3" ? "burger" : "pizza");
+        return restaurant.cuisine
+          .toLowerCase()
+          .includes(
+            activeCategory === "2"
+              ? "hot dog"
+              : activeCategory === "3"
+              ? "burger"
+              : "pizza"
+          );
       }),
     [activeCategory, search]
   );
@@ -75,19 +86,22 @@ export default function MenuScreen() {
             onPress={() => router.push("/(customer)/addresses")}
             className="mt-3 flex-row items-center gap-2"
           >
-            <Text className="text-base font-bold text-text">Halal Lab office</Text>
+            <Text className="text-base font-bold text-text">
+              Halal Lab office
+            </Text>
             <Ionicons name="chevron-down" size={18} color="#0D0D0D" />
           </TouchableOpacity>
         </View>
 
+        {/* --- CHANGED: Profile Avatar Button --- */}
         <TouchableOpacity
-          onPress={() => router.push("/(customer)/cart")}
-          className="h-14 w-14 rounded-3xl bg-black items-center justify-center shadow-sm"
+          onPress={() => router.push("/(customer)/profile")} // Routes to profile.tsx
+          className="h-14 w-14 rounded-full overflow-hidden shadow-sm border border-gray-100"
         >
-          <Ionicons name="cart" size={24} color="#fff" />
-          <View className="absolute -right-1 -top-1 h-6 w-6 rounded-full bg-primary items-center justify-center">
-            <Text className="text-xs font-bold text-white">2</Text>
-          </View>
+          <Image
+            source={{ uri: "https://i.pravatar.cc/150?img=11" }}
+            className="w-full h-full bg-gray-200"
+          />
         </TouchableOpacity>
       </View>
 
@@ -114,8 +128,16 @@ export default function MenuScreen() {
               activeCategory === category.id ? "bg-primary" : "bg-gray-100"
             }`}
           >
-            <Ionicons name={category.icon as any} size={18} color={activeCategory === category.id ? "#fff" : "#374151"} />
-            <Text className={`${activeCategory === category.id ? "text-white" : "text-text"} font-semibold`}>
+            <Ionicons
+              name={category.icon as any}
+              size={18}
+              color={activeCategory === category.id ? "#fff" : "#374151"}
+            />
+            <Text
+              className={`${
+                activeCategory === category.id ? "text-white" : "text-text"
+              } font-semibold`}
+            >
               {category.title}
             </Text>
           </TouchableOpacity>
@@ -124,7 +146,7 @@ export default function MenuScreen() {
 
       <View className="mt-8 flex-row items-center justify-between">
         <Text className="text-xl font-bold text-text">Open Restaurants</Text>
-        <TouchableOpacity onPress={() => router.push("/(customer)/orders")}> 
+        <TouchableOpacity onPress={() => router.push("/(customer)/orders")}>
           <Text className="text-sm font-semibold text-primary">See all</Text>
         </TouchableOpacity>
       </View>
