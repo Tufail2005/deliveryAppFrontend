@@ -1,54 +1,122 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
+import type { ComponentProps } from "react";
 import {
   FlatList,
-  Image, // <-- Added Image import
+  Image,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  type ImageSourcePropType,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CategoryPill from "../../src/components/CategoryPill";
 import RestaurantCard, { Restaurant } from "../../src/components/RestaurantCard";
+import { getRestaurantCoverUri } from "../../src/constants/restaurantCovers";
 
-const CATEGORIES = [
-  { id: "1", title: "All", icon: "flame-outline" },
-  { id: "2", title: "Hot Dog", icon: "fast-food-outline" },
-  { id: "3", title: "Burger", icon: "fast-food-outline" },
-  { id: "4", title: "Pizza", icon: "pizza-outline" },
+type IonName = ComponentProps<typeof Ionicons>["name"];
+
+type MenuCategory = {
+  id: string;
+  title: string;
+  /** Matches against restaurant name + cuisine (lowercased); empty ⇒ “All”. */
+  filterTerms: string[];
+  image?: ImageSourcePropType;
+  icon?: IonName;
+};
+
+const CATEGORY_IMAGES = {
+  noodles: require("../../assets/categories/noodles.png"),
+  cake: require("../../assets/categories/cake.png"),
+  biryani: require("../../assets/categories/biryani.png"),
+  burger: require("../../assets/categories/burger.png"),
+  wrap: require("../../assets/categories/wrap.png"),
+  sandwich: require("../../assets/categories/sandwich.png"),
+  momos: require("../../assets/categories/momos.png"),
+  pizza: require("../../assets/categories/pizza.png"),
+} as const;
+
+const MENU_CATEGORIES: MenuCategory[] = [
+  { id: "all", title: "All", filterTerms: [], icon: "flame" },
+  { id: "noodles", title: "Noodles", filterTerms: ["noodle", "ramen", "pho"], image: CATEGORY_IMAGES.noodles },
+  { id: "cake", title: "Cakes", filterTerms: ["cake", "dessert", "sweet"], image: CATEGORY_IMAGES.cake },
+  { id: "biryani", title: "Biryani", filterTerms: ["biryani", "rice bowl", "indian rice"], image: CATEGORY_IMAGES.biryani },
+  { id: "burger", title: "Burger", filterTerms: ["burger"], image: CATEGORY_IMAGES.burger },
+  { id: "wrap", title: "Wraps", filterTerms: ["wrap", "burrito", "shawarma", "kebab"], image: CATEGORY_IMAGES.wrap },
+  { id: "sandwich", title: "Sandwich", filterTerms: ["sandwich"], image: CATEGORY_IMAGES.sandwich },
+  { id: "momos", title: "Momos", filterTerms: ["momo", "dumpling", "dim sum", "gyoza"], image: CATEGORY_IMAGES.momos },
+  { id: "pizza", title: "Pizza", filterTerms: ["pizza"], image: CATEGORY_IMAGES.pizza },
 ];
 
 const RESTAURANTS: Restaurant[] = [
   {
     id: "1",
-    name: "Rose Garden Restaurant",
-    cuisine: "Burger • Chicken • Rice • Wings",
-    rating: 4.7,
-    eta: "20 min",
+    name: "Casa Mañana",
+    cuisine: "Mexican • Breakfast • Brunch",
+    rating: 4.8,
+    eta: "22 min",
     costForTwo: "Free delivery",
-    imageUrl:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80",
-    badge: "Top Rated",
-    offer: "20% off on first order",
+    badge: "Brunch fave",
+    offer: "Free salsa on weekends",
   },
   {
     id: "2",
-    name: "Café Bloom",
-    cuisine: "Salads • Healthy • Bowls",
-    rating: 4.5,
+    name: "Lotus Nine",
+    cuisine: "Asian • Chinese • Rice • Healthy",
+    rating: 4.7,
+    eta: "19 min",
+    costForTwo: "Free delivery",
+    badge: "Steam fresh",
+    offer: "$5 off combos",
+  },
+  {
+    id: "3",
+    name: "Yellow Pot Alley",
+    cuisine: "Street food • Dumpling • Traditional",
+    rating: 4.9,
+    eta: "16 min",
+    costForTwo: "Free delivery",
+    badge: "Local hit",
+    offer: "Handmade specials daily",
+  },
+  {
+    id: "4",
+    name: "Carving Table",
+    cuisine: "Mediterranean • Italian • Gourmet",
+    rating: 4.85,
+    eta: "25 min",
+    costForTwo: "Free delivery",
+    badge: "Chef’s pick",
+    offer: "Charcuterie board add-on",
+  },
+  {
+    id: "5",
+    name: "Verde Garden",
+    cuisine: "Salads • Healthy • Bowls • Vegan-friendly",
+    rating: 4.6,
     eta: "18 min",
     costForTwo: "Free delivery",
-    imageUrl:
-      "https://images.unsplash.com/photo-1521389508051-d7ffb5dc8c5d?w=500&q=80",
     badge: "Fresh",
-    offer: "Healthy picks",
+    offer: "2-for-1 lunch bowls Mon–Thu",
+  },
+  {
+    id: "6",
+    name: "Sole Margherita",
+    cuisine: "Pizza • Italian • Wood-fired",
+    rating: 4.92,
+    eta: "24 min",
+    costForTwo: "Free delivery",
+    badge: "Top rated",
+    offer: "Any two pizzas −15%",
   },
 ];
 
 export default function MenuScreen() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState("1");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   const filteredRestaurants = useMemo(
@@ -59,16 +127,10 @@ export default function MenuScreen() {
           restaurant.name.toLowerCase().includes(query) ||
           restaurant.cuisine.toLowerCase().includes(query);
         if (search && !matchesSearch) return false;
-        if (activeCategory === "1") return true;
-        return restaurant.cuisine
-          .toLowerCase()
-          .includes(
-            activeCategory === "2"
-              ? "hot dog"
-              : activeCategory === "3"
-              ? "burger"
-              : "pizza"
-          );
+        const cat = MENU_CATEGORIES.find((c) => c.id === activeCategory);
+        if (!cat || cat.filterTerms.length === 0) return true;
+        const haystack = `${restaurant.name} ${restaurant.cuisine}`.toLowerCase();
+        return cat.filterTerms.some((term) => haystack.includes(term));
       }),
     [activeCategory, search]
   );
@@ -117,30 +179,23 @@ export default function MenuScreen() {
         />
       </View>
 
-      <View className="mt-6 flex-row items-center gap-3">
-        {CATEGORIES.map((category) => (
-          <TouchableOpacity
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="mt-6 -mx-6 pl-6"
+        contentContainerStyle={{ paddingRight: 24 }}
+      >
+        {MENU_CATEGORIES.map((category) => (
+          <CategoryPill
             key={category.id}
+            title={category.title}
+            imageSource={category.image}
+            iconName={category.icon}
+            isActive={activeCategory === category.id}
             onPress={() => setActiveCategory(category.id)}
-            className={`rounded-full px-4 py-3 flex-row items-center gap-2 ${
-              activeCategory === category.id ? "bg-primary" : "bg-gray-100"
-            }`}
-          >
-            <Ionicons
-              name={category.icon as any}
-              size={18}
-              color={activeCategory === category.id ? "#fff" : "#374151"}
-            />
-            <Text
-              className={`${
-                activeCategory === category.id ? "text-white" : "text-text"
-              } font-semibold`}
-            >
-              {category.title}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
-      </View>
+      </ScrollView>
 
       <View className="mt-8 flex-row items-center justify-between">
         <Text className="text-xl font-bold text-text">Open Restaurants</Text>
@@ -167,7 +222,7 @@ export default function MenuScreen() {
                   params: {
                     id: item.id,
                     name: item.name,
-                    imageUrl: item.imageUrl,
+                    imageUrl: getRestaurantCoverUri(item.id) ?? item.imageUrl ?? "",
                     cuisine: item.cuisine,
                     rating: item.rating.toString(),
                     eta: item.eta,

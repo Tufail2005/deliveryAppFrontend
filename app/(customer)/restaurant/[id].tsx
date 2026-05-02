@@ -17,6 +17,9 @@ import FoodGridCard, {
 import ItemDetailModal from "../../../src/components/itemDetailModel";
 import { useCart } from "../../../src/contexts/CartContext";
 
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80";
+
 const CATEGORIES = ["Burger", "Sandwich", "Pizza", "Drinks"];
 
 const MENU_ITEMS: GridFoodItem[] = [
