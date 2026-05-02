@@ -40,15 +40,23 @@ export default function AddressesScreen() {
           {ADDRESSES.map((address) => (
             <View
               key={address.id}
-              className="rounded-[32px] bg-white p-5 shadow-sm border border-gray-100"
+              className="rounded-4xl bg-white p-5 shadow-sm border border-gray-100"
             >
               <View className="flex-row items-start gap-4">
                 <View className="h-12 w-12 rounded-2xl bg-primary/10 items-center justify-center">
-                  <Ionicons name={address.icon as any} size={20} color="#FF863B" />
+                  <Ionicons
+                    name={address.icon as any}
+                    size={20}
+                    color="#FF863B"
+                  />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-text">{address.title}</Text>
-                  <Text className="text-sm text-text-muted mt-2">{address.subtitle}</Text>
+                  <Text className="text-base font-bold text-text">
+                    {address.title}
+                  </Text>
+                  <Text className="text-sm text-text-muted mt-2">
+                    {address.subtitle}
+                  </Text>
                 </View>
               </View>
 
