@@ -361,7 +361,19 @@ export default function MenuScreen() {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<GridFoodItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const { addToCart } = useCart();
+  const { addToCart, cartItems, total } = useCart();
+
+  // Quick add handler for '+' button
+  const quickAdd = (item: GridFoodItem) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: 1,
+      imageUrl: item.imageUrl,
+      isVeg: true,
+    });
+  };
 
   const handleOpenItem = (item: GridFoodItem) => {
     setSelectedItem(item);
@@ -408,6 +420,8 @@ export default function MenuScreen() {
         item.description.toLowerCase().includes(query)
     );
   }, [activeCategory, search]);
+
+  const totalItems = cartItems.reduce((sum, cartItem) => sum + cartItem.quantity, 0);
 
   const renderHeader = () => (
     <View className="px-6 pt-6">
@@ -495,6 +509,7 @@ export default function MenuScreen() {
                 item={item}
                 className="mr-4 w-[190px]"
                 onPress={() => handleOpenItem(item)}
+                onAdd={quickAdd}
               />
             ))}
           </ScrollView>
@@ -521,6 +536,7 @@ export default function MenuScreen() {
                 item={item}
                 className="mr-4 w-[190px]"
                 onPress={() => handleOpenItem(item)}
+                onAdd={quickAdd}
               />
             ))}
           </ScrollView>
@@ -574,6 +590,28 @@ export default function MenuScreen() {
         onClose={() => setModalVisible(false)}
         onAddToCart={handleAddToCart}
       />
+
+      {totalItems > 0 && (
+        <View className="absolute inset-x-0 bottom-0 px-6 pb-6">
+          <View className="rounded-3xl bg-primary px-4 py-4 shadow-2xl flex-row items-center justify-between">
+            <View>
+              <Text className="text-sm font-semibold text-white">
+                {totalItems} item{totalItems > 1 ? "s" : ""} in cart
+              </Text>
+              <Text className="text-base font-bold text-white">
+                ₹{total.toFixed(2)} • Tap to review
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push("/(customer)/cart")}
+              className="flex-row items-center rounded-2xl bg-white px-4 py-3"
+            >
+              <Text className="mr-2 text-sm font-bold text-orange-500">View Cart</Text>
+              <Ionicons name="cart" size={18} color="#F97316" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

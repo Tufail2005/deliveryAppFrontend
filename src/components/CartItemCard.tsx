@@ -23,33 +23,49 @@ export default function CartItemCard({
   return (
     <View className="mb-4 rounded-[24px] border border-gray-100 bg-white p-4 shadow-sm">
       <View className="flex-row items-center gap-4">
+        {/* Image */}
         <Image
           source={{ uri: item.imageUrl }}
-          className="w-24 h-24 rounded-3xl bg-gray-100"
+          className="h-24 w-24 rounded-3xl bg-gray-100"
         />
 
-        <View className="flex-1">
-          <View className="flex-row justify-between items-start">
-            <Text className="text-base font-bold text-text">{item.name}</Text>
-            <Text className="text-sm font-semibold text-primary">₹{item.price}</Text>
+        {/* Content Container */}
+        <View className="flex-1 justify-between h-24">
+          {/* Top Section: Name and Veg Tag */}
+          <View>
+            <Text className="text-base font-bold text-text" numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text className="mt-1 text-xs text-text-muted">
+              {item.isVeg ? "Veg" : "Non-Veg"}
+            </Text>
           </View>
-          <Text className="text-xs text-text-muted mt-2">
-            {item.isVeg ? "Veg" : "Non-Veg"}
-          </Text>
-          <View className="mt-4 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-2 py-1">
-            <TouchableOpacity
-              onPress={onDecrement}
-              className="rounded-full p-2"
-            >
-              <Ionicons name="remove" size={18} color="#FF863B" />
-            </TouchableOpacity>
-            <Text className="mx-3 text-base font-bold text-text">{item.quantity}</Text>
-            <TouchableOpacity
-              onPress={onIncrement}
-              className="rounded-full p-2"
-            >
-              <Ionicons name="add" size={18} color="#FF863B" />
-            </TouchableOpacity>
+
+          {/* Bottom Section: Price and Buttons in one row */}
+          <View className="flex-row items-center justify-between">
+            <Text className="text-lg font-bold text-primary">
+              ₹{item.price * item.quantity}
+            </Text>
+
+            <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-1 py-1">
+              <TouchableOpacity
+                onPress={onDecrement}
+                className="rounded-full p-2"
+              >
+                <Ionicons name="remove" size={16} color="#FF863B" />
+              </TouchableOpacity>
+              
+              <Text className="mx-2 text-base font-bold text-text">
+                {item.quantity}
+              </Text>
+              
+              <TouchableOpacity
+                onPress={onIncrement}
+                className="rounded-full p-2"
+              >
+                <Ionicons name="add" size={16} color="#FF863B" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>

@@ -74,7 +74,7 @@ export default function CartScreen() {
             </View>
           </ScrollView>
 
-          <View className="border-t border-gray-100 bg-white px-6 py-5">
+          <View className="border-t border-gray-100 bg-white px-6 pt-8 pb-14">
             <PrimaryButton
               title="Proceed to payment"
               onPress={() => router.push("/(customer)/checkout")}

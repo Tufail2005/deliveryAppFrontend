@@ -104,7 +104,7 @@ export default function CheckoutScreen() {
         </View>
       </ScrollView>
 
-      <View className="border-t border-gray-100 bg-white px-6 py-5">
+      <View className="border-t border-gray-100 bg-white px-6 pt-5 pb-14">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-sm text-text-muted">Total</Text>
           <Text className="text-2xl font-bold text-text">₹{total}</Text>
