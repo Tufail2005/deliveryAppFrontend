@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../../src/components/BackButton";
+import FloatingCartBanner from "../../../src/components/FloatingCartBanner";
 import FoodGridCard, {
   GridFoodItem,
 } from "../../../src/components/FoodGridCard";
@@ -73,7 +74,6 @@ export default function RestaurantScreen() {
 
   const [activeCat, setActiveCat] = useState("Burger");
 
-  // Modal State Variables
   const [selectedItem, setSelectedItem] = useState<GridFoodItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -95,12 +95,14 @@ export default function RestaurantScreen() {
       price: item.price,
       quantity: quantity,
       imageUrl: item.imageUrl,
-      isVeg: true, // You can make this dynamic later
+      isVeg: true,
+      restaurantId: name || "rest_1",
+      restaurantName: item.restaurantName,
     });
     console.log(
       `Added ${quantity}x ${item.name} with instructions: ${instructions}`
     );
-    setModalVisible(false); // Close modal on success
+    setModalVisible(false);
   };
 
   const renderHeader = () => (
@@ -108,9 +110,7 @@ export default function RestaurantScreen() {
       <View className="relative w-full h-72 bg-gray-100 rounded-b-[40px] overflow-hidden">
         <Image
           source={{
-            uri:
-              imageUrl ||
-              "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80",
+            uri: imageUrl || FALLBACK_IMAGE,
           }}
           className="w-full h-full"
         />
@@ -188,7 +188,6 @@ export default function RestaurantScreen() {
         data={MENU_ITEMS}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
-        // 👇 Now we pass handleOpenItem instead of routing! 👇
         renderItem={({ item }) => (
           <FoodGridCard item={item} onPress={handleOpenItem} />
         )}
@@ -197,18 +196,21 @@ export default function RestaurantScreen() {
           justifyContent: "space-between",
           paddingHorizontal: 24,
         }}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        // INCREASED PADDING BOTTOM so items don't hide behind the floating banner
+        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         bounces={false}
       />
 
-      {/* Inject the Modal here! */}
       <ItemDetailModal
         visible={modalVisible}
         item={selectedItem}
         onClose={() => setModalVisible(false)}
         onAddToCart={handleAddToCart}
       />
+
+      {/* Inject the Reusable Floating Banner */}
+      <FloatingCartBanner />
     </View>
   );
 }

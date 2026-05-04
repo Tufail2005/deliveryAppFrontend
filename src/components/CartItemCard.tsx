@@ -54,11 +54,11 @@ export default function CartItemCard({
               >
                 <Ionicons name="remove" size={16} color="#FF863B" />
               </TouchableOpacity>
-              
+
               <Text className="mx-2 text-base font-bold text-text">
                 {item.quantity}
               </Text>
-              
+
               <TouchableOpacity
                 onPress={onIncrement}
                 className="rounded-full p-2"
