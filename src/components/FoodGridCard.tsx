@@ -14,13 +14,15 @@ export interface GridFoodItem {
 interface FoodGridCardProps {
   item: GridFoodItem;
   onPress: (item: GridFoodItem) => void;
+  onAdd?: (item: GridFoodItem) => void;
+  className?: string;
 }
 
-export default function FoodGridCard({ item, onPress }: FoodGridCardProps) {
+export default function FoodGridCard({ item, onPress, onAdd, className }: FoodGridCardProps) {
   return (
     <TouchableOpacity
       onPress={() => onPress(item)}
-      className="w-[47%] bg-white rounded-4xl mb-4 shadow-sm border border-gray-100 overflow-hidden"
+      className={`w-[47%] bg-white rounded-4xl mb-4 shadow-sm border border-gray-100 overflow-hidden ${className ?? ""}`}
     >
       <Image
         source={{ uri: item.imageUrl }}
@@ -37,10 +39,14 @@ export default function FoodGridCard({ item, onPress }: FoodGridCardProps) {
         </Text>
 
         <View className="flex-row items-center justify-between">
-          <Text className="text-lg font-bold text-text">${item.price}</Text>
-          <View className="w-8 h-8 rounded-full bg-primary items-center justify-center shadow-sm">
+          <Text className="text-lg font-bold text-text">₹{item.price}</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => onAdd?.(item)}
+            className="w-8 h-8 rounded-full bg-primary items-center justify-center shadow-sm"
+          >
             <Ionicons name="add" size={20} color="#fff" />
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
