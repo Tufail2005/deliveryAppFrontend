@@ -1,53 +1,95 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import axios from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect, useState } from "react";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Mock Order Data (Matches your Prisma Order schema structure)
-const INITIAL_ORDERS = [
-  {
-    id: "ORD-001",
-    customerName: "John Doe",
-    status: "PENDING",
-    totalAmount: 45.5,
-    items: [
-      { name: "Cheese Beast", qty: 2 },
-      { name: "Coke", qty: 1 },
-    ],
-    time: "10:30 AM",
-  },
-  {
-    id: "ORD-002",
-    customerName: "Sarah Smith",
-    status: "PENDING",
-    totalAmount: 32.0,
-    items: [{ name: "Spicy Chicken", qty: 1 }],
-    time: "10:35 AM",
-  },
-  {
-    id: "ORD-003",
-    customerName: "Mike Johnson",
-    status: "PREPARING",
-    totalAmount: 89.0,
-    items: [{ name: "Burger Ferguson", qty: 4 }],
-    time: "10:15 AM",
-  },
-];
 
 export default function LiveOrdersScreen() {
   const router = useRouter();
+
+  // 1. Get the dynamic restaurantId from the URL params
+  const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
+
   const [activeTab, setActiveTab] = useState("PENDING");
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<any[]>([]); // Start with an empty array instead of mock data
+
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+  // --- FETCH ORDERS FROM BACKEND ---
+  const fetchOrders = async () => {
+    if (!restaurantId) return;
+
+    try {
+      const token = await SecureStore.getItemAsync("auth_token");
+      const response = await axios.get(
+        `${API_URL}/order/restaurant/${restaurantId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const backendOrders = response.data.orders || [];
+
+      // Map Prisma Database structure to your existing Frontend UI structure
+      const formattedOrders = backendOrders.map((o: any) => ({
+        id: o.id,
+        customerName: o.user?.name || "Guest User",
+        status: o.status,
+        totalAmount: o.totalAmount,
+        items: o.items.map((i: any) => ({
+          name: i.menuItem?.name || "Unknown Item",
+          qty: i.quantity, // Prisma uses 'quantity', UI expects 'qty'
+        })),
+        time: new Date(o.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }));
+
+      setOrders(formattedOrders);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      Alert.alert("Error", "Could not load live orders.");
+    }
+  };
+
+  // Fetch orders when the screen loads or when restaurantId changes
+  useEffect(() => {
+    fetchOrders();
+
+    // Optional: You could set up a setInterval here to poll for new orders every 30 seconds
+    // const interval = setInterval(fetchOrders, 30000);
+    // return () => clearInterval(interval);
+  }, [restaurantId]);
 
   // Filters orders based on the active tab
   const filteredOrders = orders.filter((o) => o.status === activeTab);
 
-  // Simulates the PATCH /api/orders/:id/status endpoint
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
+  // --- UPDATE ORDER STATUS ---
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const token = await SecureStore.getItemAsync("auth_token");
+
+      // Optimistic UI update (Instant feedback for the user)
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
+
+      // API: PATCH /api/order/:id/status
+      await axios.patch(
+        `${API_URL}/order/${orderId}/status`,
+        { status: newStatus },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+    } catch (error) {
+      // Revert if it fails
+      Alert.alert("Error", "Failed to update order status");
+      fetchOrders();
+    }
   };
 
   return (
@@ -102,7 +144,8 @@ export default function LiveOrdersScreen() {
               <View className="flex-row justify-between items-start mb-4 border-b border-gray-50 pb-4">
                 <View>
                   <Text className="text-lg font-bold text-text">
-                    #{order.id}
+                    #{order.id.split("-")[0].toUpperCase()}{" "}
+                    {/* Trims long UUID for UI */}
                   </Text>
                   <Text className="text-sm text-text-muted mt-1">
                     {order.customerName} • {order.time}
@@ -114,7 +157,7 @@ export default function LiveOrdersScreen() {
               </View>
 
               <View className="mb-6">
-                {order.items.map((item, idx) => (
+                {order.items.map((item: any, idx: number) => (
                   <Text key={idx} className="text-base text-text mb-1">
                     <Text className="font-bold">{item.qty}x</Text> {item.name}
                   </Text>
@@ -125,7 +168,7 @@ export default function LiveOrdersScreen() {
               {order.status === "PENDING" && (
                 <View className="flex-row gap-3">
                   <TouchableOpacity
-                    onPress={() => console.log("Cancel Order")}
+                    onPress={() => updateOrderStatus(order.id, "CANCELLED")}
                     className="flex-1 bg-red-50 py-3 rounded-xl items-center"
                   >
                     <Text className="text-red-600 font-bold">Reject</Text>
@@ -154,6 +197,7 @@ export default function LiveOrdersScreen() {
             </View>
           ))
         )}
+        <View className="h-10" />
       </ScrollView>
     </SafeAreaView>
   );

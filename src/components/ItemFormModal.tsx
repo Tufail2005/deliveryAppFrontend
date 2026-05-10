@@ -31,7 +31,7 @@ interface ItemFormModalProps {
   onSave: (data: ItemFormData) => void;
 }
 
-const CATEGORIES = ["Burger", "Pizza", "Drinks", "Sandwich", "Dessert"];
+const CATEGORIES = ["Burger", "Pizza", "Beverages", "Sandwich", "Desserts"];
 
 export default function ItemFormModal({
   visible,
