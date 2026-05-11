@@ -8,16 +8,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LiveOrdersScreen() {
   const router = useRouter();
-
-  // 1. Get the dynamic restaurantId from the URL params
   const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
 
   const [activeTab, setActiveTab] = useState("PENDING");
-  const [orders, setOrders] = useState<any[]>([]); // Start with an empty array instead of mock data
+  const [orders, setOrders] = useState<any[]>([]);
 
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-  // --- FETCH ORDERS FROM BACKEND ---
+  // --- FETCH ORDERS ---
+
   const fetchOrders = async () => {
     if (!restaurantId) return;
 
@@ -25,22 +24,25 @@ export default function LiveOrdersScreen() {
       const token = await SecureStore.getItemAsync("auth_token");
       const response = await axios.get(
         `${API_URL}/order/restaurant/${restaurantId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const backendOrders = response.data.orders || [];
 
-      // Map Prisma Database structure to your existing Frontend UI structure
       const formattedOrders = backendOrders.map((o: any) => ({
         id: o.id,
         customerName: o.user?.name || "Guest User",
+        // Grab the phone number
+        customerPhone: o.user?.phone || "No phone provided",
         status: o.status,
         totalAmount: o.totalAmount,
+        // Format the address string
+        address: o.address
+          ? `${o.address.street}, ${o.address.city}, ${o.address.zipCode}`
+          : "No address provided",
         items: o.items.map((i: any) => ({
           name: i.menuItem?.name || "Unknown Item",
-          qty: i.quantity, // Prisma uses 'quantity', UI expects 'qty'
+          qty: i.quantity,
         })),
         time: new Date(o.createdAt).toLocaleTimeString([], {
           hour: "2-digit",
@@ -50,7 +52,6 @@ export default function LiveOrdersScreen() {
 
       setOrders(formattedOrders);
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
       Alert.alert("Error", "Could not load live orders.");
     }
   };
@@ -58,10 +59,6 @@ export default function LiveOrdersScreen() {
   // Fetch orders when the screen loads or when restaurantId changes
   useEffect(() => {
     fetchOrders();
-
-    // Optional: You could set up a setInterval here to poll for new orders every 30 seconds
-    // const interval = setInterval(fetchOrders, 30000);
-    // return () => clearInterval(interval);
   }, [restaurantId]);
 
   // Filters orders based on the active tab
@@ -144,11 +141,15 @@ export default function LiveOrdersScreen() {
               <View className="flex-row justify-between items-start mb-4 border-b border-gray-50 pb-4">
                 <View>
                   <Text className="text-lg font-bold text-text">
-                    #{order.id.split("-")[0].toUpperCase()}{" "}
-                    {/* Trims long UUID for UI */}
+                    #{order.id.split("-")[0].toUpperCase()}
                   </Text>
-                  <Text className="text-sm text-text-muted mt-1">
-                    {order.customerName} • {order.time}
+                  <Text className="text-sm font-bold text-text mt-1">
+                    {order.customerName}
+                  </Text>
+                  {/* PHONE NUMBER ADDED HERE */}
+                  <Text className="text-xs text-text-muted mt-1 flex-row items-center">
+                    <Ionicons name="call" size={10} /> {order.customerPhone} •{" "}
+                    {order.time}
                   </Text>
                 </View>
                 <Text className="text-xl font-bold text-primary">
@@ -156,12 +157,22 @@ export default function LiveOrdersScreen() {
                 </Text>
               </View>
 
-              <View className="mb-6">
+              <View className="mb-4">
                 {order.items.map((item: any, idx: number) => (
                   <Text key={idx} className="text-base text-text mb-1">
                     <Text className="font-bold">{item.qty}x</Text> {item.name}
                   </Text>
                 ))}
+              </View>
+
+              {/* ADDRESS ADDED HERE */}
+              <View className="mb-6 pt-4 border-t border-gray-50">
+                <Text className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                  Delivery Address
+                </Text>
+                <Text className="text-sm text-text leading-5">
+                  {order.address}
+                </Text>
               </View>
 
               {/* Action Buttons based on status */}
