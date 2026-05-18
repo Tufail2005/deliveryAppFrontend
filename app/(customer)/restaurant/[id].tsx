@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
-  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -19,65 +20,64 @@ import ItemDetailModal from "../../../src/components/itemDetailModel";
 import { useCart } from "../../../src/contexts/CartContext";
 
 const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80";
+  "https://images.pexels.com/photos/6546548/pexels-photo-6546548.jpeg";
 
-const CATEGORIES = ["Burger", "Sandwich", "Pizza", "Drinks"];
+const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
-const MENU_ITEMS: GridFoodItem[] = [
-  {
-    id: "f1",
-    name: "Burger Ferguson",
-    restaurantName: "Spicy Restaurant",
-    price: 40,
-    imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80",
-    description:
-      "A classic burger with fresh lettuce, tomato, and our secret spicy sauce.",
-  },
-  {
-    id: "f2",
-    name: "Rockin' Burgers",
-    restaurantName: "Cafecafachino",
-    price: 42,
-    imageUrl:
-      "https://images.unsplash.com/photo-1594212204688-a38db6770fec?w=500&q=80",
-    description: "Double patty burger packed with flavor and melted cheese.",
-  },
-  {
-    id: "f3",
-    name: "Cheese Beast",
-    restaurantName: "Burger Bistro",
-    price: 38,
-    imageUrl:
-      "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&q=80",
-    description: "Overflowing with three types of cheese and crispy bacon.",
-  },
-  {
-    id: "f4",
-    name: "Spicy Chicken",
-    restaurantName: "Halal Lab",
-    price: 35,
-    imageUrl:
-      "https://images.unsplash.com/photo-1615719413546-198b25453f85?w=500&q=80",
-    description: "Crispy fried chicken breast with jalapeños and spicy mayo.",
-  },
-];
+interface ApiItemsResponse {
+  items: GridFoodItem[];
+}
 
 export default function RestaurantScreen() {
-  const { name, imageUrl, rating, eta, costForTwo } = useLocalSearchParams<{
+  const { id, name, imageUrl, rating, eta, description } = useLocalSearchParams<{
+    id: string;
     name: string;
     imageUrl: string;
     rating: string;
     eta: string;
-    costForTwo: string;
+    description: string;
   }>();
-
-  const [activeCat, setActiveCat] = useState("Burger");
 
   const [selectedItem, setSelectedItem] = useState<GridFoodItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
+  // States for live database items
+  const [items, setItems] = useState<GridFoodItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const { addToCart } = useCart();
+
+  // Fetch ALL items for this specific restaurant without passing a category constraint
+  useEffect(() => {
+    const fetchEntireMenu = async () => {
+      if (!id || !baseUrl) return;
+      
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get<ApiItemsResponse>(`${baseUrl}/customer/restaurants/${id}/items`, {
+          params: {
+            restaurantId: id as string, // Only pass the restaurant ID to get everything!
+          },
+        });
+
+        if (response.data?.items) {
+          setItems(response.data.items);
+        } else {
+          throw new Error("Invalid format returned from menu server");
+        }
+      } catch (err) {
+        console.error("Error pulling full restaurant menu items:", err);
+        setError("Could not load the menu details.");
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEntireMenu();
+  }, [id]);
 
   const handleOpenItem = (item: GridFoodItem) => {
     setSelectedItem(item);
@@ -96,12 +96,9 @@ export default function RestaurantScreen() {
       quantity: quantity,
       imageUrl: item.imageUrl,
       isVeg: true,
-      restaurantId: name || "rest_1",
-      restaurantName: item.restaurantName,
+      restaurantId: id || "rest_1",
+      restaurantName: name || item.restaurantName,
     });
-    console.log(
-      `Added ${quantity}x ${item.name} with instructions: ${instructions}`
-    );
     setModalVisible(false);
   };
 
@@ -113,6 +110,7 @@ export default function RestaurantScreen() {
             uri: imageUrl || FALLBACK_IMAGE,
           }}
           className="w-full h-full"
+          resizeMode="cover"
         />
         <SafeAreaView className="absolute top-0 w-full px-6 pt-4 flex-row justify-between">
           <BackButton />
@@ -122,61 +120,33 @@ export default function RestaurantScreen() {
         </SafeAreaView>
       </View>
 
-      <View className="px-6 pt-6">
+      <View className="px-6 pt-6 mb-2">
         <View className="flex-row items-center gap-6 mb-4">
           <View className="flex-row items-center gap-1">
-            <Ionicons name="star-outline" size={20} color="#FF863B" />
+            <Ionicons name="star" size={18} color="#FF863B" />
             <Text className="text-sm font-bold text-text">
-              {rating || "4.7"}
+              {rating ? Number(rating).toFixed(1) : "4.0"}
             </Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Ionicons name="car-outline" size={20} color="#FF863B" />
-            <Text className="text-sm text-text-muted">
-              {costForTwo || "Free"}
-            </Text>
+            <Text className="text-sm text-text-muted">1 km</Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Ionicons name="time-outline" size={20} color="#FF863B" />
-            <Text className="text-sm text-text-muted">{eta || "20 min"}</Text>
+            <Text className="text-sm text-text-muted">{eta || "25-35 min"}</Text>
           </View>
         </View>
 
         <Text className="text-3xl font-bold text-text mb-2">
-          {name || "Spicy Restaurant"}
+          {name || "Kitchen Partner"}
         </Text>
         <Text className="text-sm text-text-muted leading-6 mb-6">
-          Maecenas sed diam eget risus varius blandit sit amet non magna.
-          Integer posuere erat a ante venenatis dapibus posuere velit aliquet.
+          {description? description:"Delicious meals prepared fresh daily with quality ingredients. Scroll down to see our full available menu"}
         </Text>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mb-8 overflow-visible"
-        >
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              onPress={() => setActiveCat(cat)}
-              className={`px-6 py-3 rounded-full mr-3 border ${
-                activeCat === cat
-                  ? "bg-primary border-primary"
-                  : "bg-white border-gray-200"
-              }`}
-            >
-              <Text
-                className={`font-semibold ${
-                  activeCat === cat ? "text-white" : "text-text"
-                }`}
-              >
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <Text className="text-xl font-bold text-text mb-4">
-          {activeCat} ({MENU_ITEMS.length})
+        <Text className="text-xl font-bold text-text mb-2">
+          Full Menu ({items.length} items)
         </Text>
       </View>
     </View>
@@ -184,23 +154,41 @@ export default function RestaurantScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <FlatList
-        data={MENU_ITEMS}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        renderItem={({ item }) => (
-          <FoodGridCard item={item} onPress={handleOpenItem} />
-        )}
-        numColumns={2}
-        columnWrapperStyle={{
-          justifyContent: "space-between",
-          paddingHorizontal: 24,
-        }}
-        // INCREASED PADDING BOTTOM so items don't hide behind the floating banner
-        contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      />
+      {error && (
+        <View className="bg-red-100 border border-red-300 rounded-lg p-3 mx-6 mt-4">
+          <Text className="text-red-700 text-sm font-semibold">{error}</Text>
+        </View>
+      )}
+
+      {loading ? (
+        <View className="flex-1 items-center justify-center pt-10">
+          <ActivityIndicator size="large" color="#FF863B" />
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item }) => (
+            <FoodGridCard item={item} onPress={handleOpenItem} />
+          )}
+          numColumns={2}
+          columnWrapperStyle={{
+            justifyContent: "space-between",
+            paddingHorizontal: 24,
+          }}
+          ListEmptyComponent={
+            <View className="py-12 flex items-center justify-center">
+              <Text className="text-gray-400 font-semibold text-base">
+                No items are loaded in the menu for this kitchen yet.
+              </Text>
+            </View>
+          }
+          contentContainerStyle={{ paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        />
+      )}
 
       <ItemDetailModal
         visible={modalVisible}
@@ -209,7 +197,6 @@ export default function RestaurantScreen() {
         onAddToCart={handleAddToCart}
       />
 
-      {/* Inject the Reusable Floating Banner */}
       <FloatingCartBanner />
     </View>
   );

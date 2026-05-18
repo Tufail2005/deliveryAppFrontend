@@ -79,7 +79,7 @@ export default function ItemDetailModal({
             {/* Image Section */}
             <View className="px-4 mb-4">
               <Image
-                source={{ uri: item.imageUrl }}
+                source={{ uri: item.imageUrl || "https://images.pexels.com/photos/6546548/pexels-photo-6546548.jpeg"}}
                 className="w-full h-56 rounded-3xl bg-gray-100"
                 resizeMode="cover"
               />
