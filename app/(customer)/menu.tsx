@@ -1,430 +1,62 @@
+import { CATEGORY_UI_CONFIG } from "@/src/constants/allCatagories";
+import { ItemCategory } from "@/src/types/catagories";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { useRouter } from "expo-router";
 import type { ComponentProps } from "react";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  type ImageSourcePropType,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CategoryPill from "../../src/components/CategoryPill";
+import FloatingCartBanner from "../../src/components/FloatingCartBanner";
 import FoodGridCard, { GridFoodItem } from "../../src/components/FoodGridCard";
 import ItemDetailModal from "../../src/components/itemDetailModel";
 import RestaurantCard, {
   Restaurant,
 } from "../../src/components/RestaurantCard";
-// IMPORT THE BANNER
-import FloatingCartBanner from "../../src/components/FloatingCartBanner";
-import { getRestaurantCoverUri } from "../../src/constants/restaurantCovers";
 import { useCart } from "../../src/contexts/CartContext";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
-type MenuCategory = {
-  id: string;
-  title: string;
-  /** Matches against restaurant name + cuisine (lowercased); empty ⇒ “All”. */
-  filterTerms: string[];
-  image?: ImageSourcePropType;
-  icon?: IonName;
+interface ApiItemsResponse {
+  items: GridFoodItem[];
+}
+
+interface ApiRestaurantsResponse {
+  restaurants: Restaurant[];
+}
+
+const getCategoryUI = (cat: ItemCategory) => {
+  const config = CATEGORY_UI_CONFIG[cat];
+  return {
+    id: cat,
+    title: config.title,
+    image: "image" in config ? config.image : undefined,
+    icon: "icon" in config ? config.icon : undefined,
+  };
 };
 
-const CATEGORY_IMAGES = {
-  noodles: require("../../assets/categories/noodles.png"),
-  cake: require("../../assets/categories/cake.png"),
-  biryani: require("../../assets/categories/biryani.png"),
-  burger: require("../../assets/categories/burger.png"),
-  wrap: require("../../assets/categories/wrap.png"),
-  sandwich: require("../../assets/categories/sandwich.png"),
-  momos: require("../../assets/categories/momos.png"),
-  pizza: require("../../assets/categories/pizza.png"),
-} as const;
-
-const MENU_CATEGORIES: MenuCategory[] = [
-  { id: "all", title: "All", filterTerms: [], icon: "flame" },
-  {
-    id: "noodles",
-    title: "Noodles",
-    filterTerms: ["noodle", "ramen", "pho"],
-    image: CATEGORY_IMAGES.noodles,
-  },
-  {
-    id: "cake",
-    title: "Cakes",
-    filterTerms: ["cake", "dessert", "sweet"],
-    image: CATEGORY_IMAGES.cake,
-  },
-  {
-    id: "biryani",
-    title: "Biryani",
-    filterTerms: ["biryani", "rice bowl", "indian rice"],
-    image: CATEGORY_IMAGES.biryani,
-  },
-  {
-    id: "burger",
-    title: "Burger",
-    filterTerms: ["burger"],
-    image: CATEGORY_IMAGES.burger,
-  },
-  {
-    id: "wrap",
-    title: "Wraps",
-    filterTerms: ["wrap", "burrito", "shawarma", "kebab"],
-    image: CATEGORY_IMAGES.wrap,
-  },
-  {
-    id: "sandwich",
-    title: "Sandwich",
-    filterTerms: ["sandwich"],
-    image: CATEGORY_IMAGES.sandwich,
-  },
-  {
-    id: "momos",
-    title: "Momos",
-    filterTerms: ["momo", "dumpling", "dim sum", "gyoza"],
-    image: CATEGORY_IMAGES.momos,
-  },
-  {
-    id: "pizza",
-    title: "Pizza",
-    filterTerms: ["pizza"],
-    image: CATEGORY_IMAGES.pizza,
-  },
+const MENU_CATEGORIES = [
+  { id: "all", title: "All", icon: "flame" as const, image: undefined }, 
+  ...Object.values(ItemCategory).map((cat) => getCategoryUI(cat)),
 ];
 
-const POPULAR_ITEMS: GridFoodItem[] = [
-  {
-    id: "p1",
-    name: "Double Breast Chicken Burger",
-    restaurantName: "Burger Tree",
-    price: 149,
-    imageUrl:
-      "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80",
-    description: "Crispy chicken, fresh lettuce and signature sauce.",
-  },
-  {
-    id: "p2",
-    name: "Veg Snacker Burger",
-    restaurantName: "Burger Singh",
-    price: 49,
-    imageUrl:
-      "https://images.unsplash.com/photo-1606755962776-7a4e3f70e8d7?auto=format&fit=crop&w=800&q=80",
-    description: "Spiced veggie patty with melted cheese and chutney.",
-  },
-  {
-    id: "p3",
-    name: "Chicken Slaw Burger",
-    restaurantName: "Burger Junction",
-    price: 69,
-    imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
-    description: "Juicy chicken, slaw and tangy mayo in a toasted bun.",
-  },
-];
+const visibleCategories = MENU_CATEGORIES.slice(0, 9);
+const remainingCount = MENU_CATEGORIES.length - 9;
+const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
-const CATEGORY_ITEMS: { [key: string]: GridFoodItem[] } = {
-  burger: [
-    {
-      id: "b1",
-      name: "Classic Beef Burger",
-      restaurantName: "Burger Tree",
-      price: 149,
-      imageUrl:
-        "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80",
-      description: "Juicy beef patty with lettuce, tomato, and mayo.",
-    },
-    {
-      id: "b2",
-      name: "Veg Snacker",
-      restaurantName: "Burger Singh",
-      price: 49,
-      imageUrl:
-        "https://images.unsplash.com/photo-1606755962776-7a4e3f70e8d7?auto=format&fit=crop&w=800&q=80",
-      description: "Crispy veggie patty with cheese and chutney.",
-    },
-    {
-      id: "b3",
-      name: "Chicken Slaw",
-      restaurantName: "Burger Junction",
-      price: 69,
-      imageUrl:
-        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
-      description: "Fried chicken with coleslaw and spicy mayo.",
-    },
-    {
-      id: "b4",
-      name: "Cheese Beast",
-      restaurantName: "Burger Bistro",
-      price: 89,
-      imageUrl:
-        "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&q=80",
-      description: "Triple cheese with bacon and crispy fries.",
-    },
-  ],
-  pizza: [
-    {
-      id: "pz1",
-      name: "Margherita",
-      restaurantName: "Sole Margherita",
-      price: 249,
-      imageUrl:
-        "https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=500&q=80",
-      description: "Classic pizza with fresh mozzarella and basil.",
-    },
-    {
-      id: "pz2",
-      name: "Pepperoni",
-      restaurantName: "Sole Margherita",
-      price: 279,
-      imageUrl:
-        "https://images.unsplash.com/photo-1628840042765-356cda07f4ee?w=500&q=80",
-      description: "Loaded with pepperoni and melted cheese.",
-    },
-    {
-      id: "pz3",
-      name: "Veggie Supreme",
-      restaurantName: "Green Crust",
-      price: 199,
-      imageUrl:
-        "https://images.unsplash.com/photo-1511689915941-5055fed14442?w=500&q=80",
-      description: "Fresh vegetables with olive oil and herbs.",
-    },
-  ],
-  noodles: [
-    {
-      id: "n1",
-      name: "Chow Mein",
-      restaurantName: "Lotus Nine",
-      price: 129,
-      imageUrl:
-        "https://images.unsplash.com/photo-1612874742237-6526221fcf4f?w=500&q=80",
-      description: "Crispy noodles with vegetables and soy sauce.",
-    },
-    {
-      id: "n2",
-      name: "Ramen Bowl",
-      restaurantName: "Ramen House",
-      price: 149,
-      imageUrl:
-        "https://images.unsplash.com/photo-1618341996804-d9b63f8dd8c4?w=500&q=80",
-      description: "Japanese ramen with rich broth and toppings.",
-    },
-    {
-      id: "n3",
-      name: "Pad Thai",
-      restaurantName: "Thai Spice",
-      price: 119,
-      imageUrl:
-        "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80",
-      description: "Thai noodles with peanut sauce and lime.",
-    },
-  ],
-  cake: [
-    {
-      id: "c1",
-      name: "Chocolate Cake",
-      restaurantName: "Sweet Bakes",
-      price: 249,
-      imageUrl:
-        "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&q=80",
-      description: "Rich chocolate cake with smooth frosting.",
-    },
-    {
-      id: "c2",
-      name: "Cheesecake",
-      restaurantName: "Sweet Bakes",
-      price: 299,
-      imageUrl:
-        "https://images.unsplash.com/photo-1615521471907-36ec42b67497?w=500&q=80",
-      description: "Creamy cheesecake with berry topping.",
-    },
-  ],
-  biryani: [
-    {
-      id: "br1",
-      name: "Hyderabadi Biryani",
-      restaurantName: "Biryani House",
-      price: 249,
-      imageUrl:
-        "https://images.unsplash.com/photo-1563379091339-03b21ab4a104?w=500&q=80",
-      description: "Authentic Hyderabadi biryani with basmati rice.",
-    },
-    {
-      id: "br2",
-      name: "Chicken Biryani",
-      restaurantName: "Rice Palace",
-      price: 199,
-      imageUrl:
-        "https://images.unsplash.com/photo-1559866150-cd4628902249?w=500&q=80",
-      description: "Fragrant chicken with aromatic spices.",
-    },
-    {
-      id: "br3",
-      name: "Veg Biryani",
-      restaurantName: "Green Rice",
-      price: 149,
-      imageUrl:
-        "https://images.unsplash.com/photo-1584622800694-64553f1ec4d3?w=500&q=80",
-      description: "Mixed vegetables with basmati rice.",
-    },
-  ],
-  wrap: [
-    {
-      id: "w1",
-      name: "Chicken Shawarma",
-      restaurantName: "Shawarma King",
-      price: 129,
-      imageUrl:
-        "https://images.unsplash.com/photo-1599599810694-cd5e3b0f0d4b?w=500&q=80",
-      description: "Spiced chicken wrapped in pita bread.",
-    },
-    {
-      id: "w2",
-      name: "Veg Wrap",
-      restaurantName: "Wrap Master",
-      price: 99,
-      imageUrl:
-        "https://images.unsplash.com/photo-1606787620884-c0dec3b7b754?w=500&q=80",
-      description: "Fresh vegetables in a soft tortilla.",
-    },
-    {
-      id: "w3",
-      name: "Beef Burrito",
-      restaurantName: "Mexican Kitchen",
-      price: 179,
-      imageUrl:
-        "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&q=80",
-      description: "Seasoned beef with beans and rice.",
-    },
-  ],
-  sandwich: [
-    {
-      id: "s1",
-      name: "Grilled Chicken",
-      restaurantName: "Sandwich Co",
-      price: 139,
-      imageUrl:
-        "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=500&q=80",
-      description: "Chargrilled chicken on multigrain bread.",
-    },
-    {
-      id: "s2",
-      name: "Club Sandwich",
-      restaurantName: "Cafe Express",
-      price: 169,
-      imageUrl:
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=500&q=80",
-      description: "Triple decker with chicken, bacon, and veggies.",
-    },
-    {
-      id: "s3",
-      name: "Veggie Delight",
-      restaurantName: "Green Cafe",
-      price: 99,
-      imageUrl:
-        "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80",
-      description: "Fresh vegetables with mayo on whole wheat.",
-    },
-  ],
-  momos: [
-    {
-      id: "m1",
-      name: "Chicken Momos",
-      restaurantName: "Momo House",
-      price: 89,
-      imageUrl:
-        "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80",
-      description: "Steamed dumplings with spiced chicken filling.",
-    },
-    {
-      id: "m2",
-      name: "Veg Momos",
-      restaurantName: "Momo Paradise",
-      price: 69,
-      imageUrl:
-        "https://images.unsplash.com/photo-1608270861620-7aae4d755744?w=500&q=80",
-      description: "Vegetable dumplings with ginger sauce.",
-    },
-    {
-      id: "m3",
-      name: "Pork Momos",
-      restaurantName: "Asian Bites",
-      price: 99,
-      imageUrl:
-        "https://images.unsplash.com/photo-1609501676725-3d2f0b1a4b97?w=500&q=80",
-      description: "Steamed pork dumplings with chili oil.",
-    },
-  ],
-};
-
-const RESTAURANTS: Restaurant[] = [
-  {
-    id: "1",
-    name: "Casa Mañana",
-    cuisine: "Mexican • Breakfast • Brunch",
-    rating: 4.8,
-    eta: "22 min",
-    costForTwo: "Free delivery",
-    badge: "Brunch fave",
-    offer: "Free salsa on weekends",
-  },
-  {
-    id: "2",
-    name: "Lotus Nine",
-    cuisine: "Asian • Chinese • Rice • Healthy",
-    rating: 4.7,
-    eta: "19 min",
-    costForTwo: "Free delivery",
-    badge: "Steam fresh",
-    offer: "$5 off combos",
-  },
-  {
-    id: "3",
-    name: "Yellow Pot Alley",
-    cuisine: "Street food • Dumpling • Traditional",
-    rating: 4.9,
-    eta: "16 min",
-    costForTwo: "Free delivery",
-    badge: "Local hit",
-    offer: "Handmade specials daily",
-  },
-  {
-    id: "4",
-    name: "Carving Table",
-    cuisine: "Mediterranean • Italian • Gourmet",
-    rating: 4.85,
-    eta: "25 min",
-    costForTwo: "Free delivery",
-    badge: "Chef’s pick",
-    offer: "Charcuterie board add-on",
-  },
-  {
-    id: "5",
-    name: "Verde Garden",
-    cuisine: "Salads • Healthy • Bowls • Vegan-friendly",
-    rating: 4.6,
-    eta: "18 min",
-    costForTwo: "Free delivery",
-    badge: "Fresh",
-    offer: "2-for-1 lunch bowls Mon–Thu",
-  },
-  {
-    id: "6",
-    name: "Sole Margherita",
-    cuisine: "Pizza • Italian • Wood-fired",
-    rating: 4.92,
-    eta: "24 min",
-    costForTwo: "Free delivery",
-    badge: "Top rated",
-    offer: "Any two pizzas −15%",
-  },
-];
+if (!baseUrl) {
+  console.warn('EXPO_PUBLIC_API_URL environment variable is not set');
+}
 
 export default function MenuScreen() {
   const router = useRouter();
@@ -433,10 +65,69 @@ export default function MenuScreen() {
   const [selectedItem, setSelectedItem] = useState<GridFoodItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // We only need addToCart from the hook now!
+  // Core application database hooks state tracking
+  const [items, setItems] = useState<GridFoodItem[]>([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [restaurantLoading, setRestaurantLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 1. Fetch live contextual food items
+  useEffect(() => {
+    const fetchItems = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (!baseUrl) {
+          throw new Error('API URL not configured');
+        }
+        
+        const response = await axios.get<ApiItemsResponse>(`${baseUrl}/customer/item`, {
+          params: { 
+            category: activeCategory === "all" ? undefined : activeCategory.toUpperCase() 
+          }
+        });
+
+        if (response.data?.items) {
+          setItems(response.data.items);
+        } else {
+          throw new Error('Invalid API response format');
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch items';
+        console.error("Connection failed:", errorMessage);
+        setError(errorMessage);
+        setItems([]); 
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, [activeCategory, baseUrl]);
+
+  // 2. Fetch live restaurant directory profiles on application mount
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      setRestaurantLoading(true);
+      try {
+        if (!baseUrl) return;
+        const response = await axios.get<ApiRestaurantsResponse>(`${baseUrl}/customer/restaurants`);
+        if (response.data?.restaurants) {
+          setRestaurants(response.data.restaurants);
+        }
+      } catch (err) {
+        console.error("Failed fetching live restaurant entries:", err);
+      } finally {
+        setRestaurantLoading(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, [baseUrl]);
+
   const { addToCart } = useCart();
 
-  // Quick add handler for '+' button
   const quickAdd = (item: GridFoodItem) => {
     addToCart({
       id: item.id,
@@ -445,7 +136,7 @@ export default function MenuScreen() {
       quantity: 1,
       imageUrl: item.imageUrl,
       isVeg: true,
-      restaurantId: item.restaurantName,
+      restaurantId: item.restaurantName, 
       restaurantName: item.restaurantName,
     });
   };
@@ -467,7 +158,7 @@ export default function MenuScreen() {
       quantity: quantity,
       imageUrl: item.imageUrl,
       isVeg: true,
-      restaurantId: item.restaurantName,
+      restaurantId: item.restaurantName, 
       restaurantName: item.restaurantName,
     });
     setModalVisible(false);
@@ -475,28 +166,12 @@ export default function MenuScreen() {
 
   const filteredRestaurants = useMemo(
     () =>
-      RESTAURANTS.filter((restaurant) => {
+      restaurants.filter((restaurant) => {
         const query = search.toLowerCase();
-        const matchesSearch =
-          restaurant.name.toLowerCase().includes(query) ||
-          restaurant.cuisine.toLowerCase().includes(query);
-        if (search && !matchesSearch) return false;
-        return true;
+        return restaurant.name.toLowerCase().includes(query);
       }),
-    [search]
+    [search, restaurants]
   );
-
-  const filteredCategoryItems = useMemo(() => {
-    if (activeCategory === "all") return [];
-    const items = CATEGORY_ITEMS[activeCategory] || [];
-    const query = search.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(query) ||
-        item.restaurantName.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query)
-    );
-  }, [activeCategory, search]);
 
   const renderHeader = () => (
     <View className="px-6 pt-6">
@@ -547,7 +222,7 @@ export default function MenuScreen() {
         className="mt-6 -mx-6 pl-6"
         contentContainerStyle={{ paddingRight: 24 }}
       >
-        {MENU_CATEGORIES.map((category) => (
+        {visibleCategories.map((category) => (
           <CategoryPill
             key={category.id}
             title={category.title}
@@ -557,12 +232,29 @@ export default function MenuScreen() {
             onPress={() => setActiveCategory(category.id)}
           />
         ))}
+        {remainingCount > 0 && (
+          <CategoryPill
+            title="See All"
+            iconName="grid-outline"
+            iconColor="#6B7280"
+            isActive={false}
+            onPress={() => router.push("/(customer)/all-categories" as any)}
+          />
+        )}
       </ScrollView>
 
+      {error && (
+        <View className="bg-red-100 border border-red-300 rounded-lg p-3 mt-6 mb-2">
+          <Text className="text-red-700 text-sm font-semibold">Error Loading Feed</Text>
+          <Text className="text-red-600 text-xs mt-1">{error}</Text>
+        </View>
+      )}
+
+      {/* 1. Global / 'All' Feed Category Container */}
       {activeCategory === "all" && (
         <View className="mt-8">
           <View className="flex-row items-center justify-between px-0 mb-4">
-            <Text className="text-xl font-bold text-text">Popular Items</Text>
+            <Text className="text-xl font-bold text-text">Discover Items</Text>
             <TouchableOpacity
               onPress={() => router.push("/(customer)/orders")}
               className="px-2 py-1"
@@ -579,19 +271,28 @@ export default function MenuScreen() {
             className="-mx-6 pl-6"
             contentContainerStyle={{ paddingRight: 24 }}
           >
-            {POPULAR_ITEMS.map((item) => (
-              <FoodGridCard
-                key={item.id}
-                item={item}
-                className="mr-4 w-[190px]"
-                onPress={() => handleOpenItem(item)}
-                onAdd={quickAdd}
-              />
-            ))}
+            {loading ? (
+              <ActivityIndicator size="small" color="#FF863B" className="py-8 pl-6" />
+            ) : items.length > 0 ? (
+              items.map((item) => (
+                <FoodGridCard
+                  key={item.id}
+                  item={item}
+                  className="mr-4 w-[190px]"
+                  onPress={() => handleOpenItem(item)}
+                  onAdd={quickAdd}
+                />
+              ))
+            ) : (
+              <View className="py-8 pl-6">
+                <Text className="text-gray-400 font-semibold">No food options available to explore.</Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       )}
 
+      {/* 2. Specific Query Category Container */}
       {activeCategory !== "all" && (
         <View className="mt-8">
           <View className="flex-row items-center justify-between px-0 mb-4">
@@ -606,15 +307,23 @@ export default function MenuScreen() {
             className="-mx-6 pl-6"
             contentContainerStyle={{ paddingRight: 24 }}
           >
-            {filteredCategoryItems.map((item) => (
-              <FoodGridCard
-                key={item.id}
-                item={item}
-                className="mr-4 w-[190px]"
-                onPress={() => handleOpenItem(item)}
-                onAdd={quickAdd}
-              />
-            ))}
+            {loading ? (
+              <ActivityIndicator size="small" color="#FF863B" className="py-8 pl-6" />
+            ) : items.length > 0 ? (
+              items.map((item) => (
+                <FoodGridCard
+                  key={item.id}
+                  item={item}
+                  className="mr-4 w-[190px]"
+                  onPress={() => handleOpenItem(item)}
+                  onAdd={quickAdd}
+                />
+              ))
+            ) : (
+              <View className="py-8 pl-6">
+                <Text className="text-gray-400 font-semibold">No kitchen items prepared for this category today.</Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       )}
@@ -630,36 +339,45 @@ export default function MenuScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-bg">
-      <FlatList
-        key="restaurants-list"
-        data={filteredRestaurants}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        renderItem={({ item }) => (
-          <View className="px-6">
-            <RestaurantCard
-              restaurant={item}
-              onPress={() =>
-                router.push({
-                  pathname: "/(customer)/restaurant/[id]",
-                  params: {
-                    id: item.id,
-                    name: item.name,
-                    imageUrl:
-                      getRestaurantCoverUri(item.id) ?? item.imageUrl ?? "",
-                    cuisine: item.cuisine,
-                    rating: item.rating.toString(),
-                    eta: item.eta,
-                    costForTwo: item.costForTwo,
-                  },
-                })
-              }
-            />
-          </View>
-        )}
-        contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      />
+      {restaurantLoading && restaurants.length === 0 ? (
+        <View className="pt-8 flex items-center justify-center">
+          <ActivityIndicator size="large" color="#FF863B" />
+        </View>
+      ) : (
+        <FlatList
+          key="restaurants-list"
+          data={filteredRestaurants}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item }) => (
+            <View className="px-6">
+              <RestaurantCard
+                restaurant={item}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(customer)/restaurant/[id]",
+                    params: {
+                      id: item.id,
+                      name: item.name,
+                      imageUrl: item.imageUrl,
+                      rating: item.rating.toString(),
+                      eta: item.eta,
+                      description: item.description ?? "", // 👈 Added description parameter pass-through mapping
+                    },
+                  })
+                }
+              />
+            </View>
+          )}
+          ListEmptyComponent={
+            <View className="py-12 flex items-center justify-center">
+              <Text className="text-gray-400 font-semibold text-base">No active partner kitchens found.</Text>
+            </View>
+          }
+          contentContainerStyle={{ paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <ItemDetailModal
         visible={modalVisible}
@@ -668,7 +386,6 @@ export default function MenuScreen() {
         onAddToCart={handleAddToCart}
       />
 
-      {/* Render the Reusable Cart Banner Component */}
       <FloatingCartBanner />
     </SafeAreaView>
   );

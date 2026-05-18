@@ -1,19 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import { RESTAURANT_COVER_BY_ID } from "../constants/restaurantCovers";
 
 export interface Restaurant {
   id: string;
   name: string;
-  cuisine: string;
   rating: number;
   eta: string;
-  costForTwo: string;
-  /** Fallback when no bundled cover exists for `id`. */
-  imageUrl?: string;
-  badge: string;
+  imageUrl: string; // Made required as it now comes directly from the database
+  badge: string;    // Will map to your stored "Brunch fave" badge string
   offer?: string;
+  description?: string;
 }
 
 export default function RestaurantCard({
@@ -23,12 +20,9 @@ export default function RestaurantCard({
   restaurant: Restaurant;
   onPress: () => void;
 }) {
-  const coverSource =
-    RESTAURANT_COVER_BY_ID[restaurant.id] ??
-    (restaurant.imageUrl ? { uri: restaurant.imageUrl } : undefined);
-  const distanceText = restaurant.costForTwo.toLowerCase().includes("km")
-    ? restaurant.costForTwo
-    : "1 km";
+  // Use the image URL text directly from your ImageKit database record
+  const coverSource = restaurant.imageUrl ? { uri: restaurant.imageUrl } : undefined;
+  const distanceText = "1 km";
   const ratingMeta = restaurant.badge ? `By ${restaurant.badge}` : "By 5.4K+";
 
   return (
