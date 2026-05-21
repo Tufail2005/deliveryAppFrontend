@@ -2,7 +2,7 @@ import { CATEGORY_UI_CONFIG } from "@/src/constants/allCatagories";
 import { ItemCategory } from "@/src/types/catagories";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router"; // 👈 Integrated useLocalSearchParams
 import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -60,6 +60,10 @@ if (!baseUrl) {
 
 export default function MenuScreen() {
   const router = useRouter();
+  
+  // 1. Hook up search parameters to parse values returned backward from address selections
+  const params = useLocalSearchParams<{ selectedAddressLabel?: string }>();
+
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<GridFoodItem | null>(null);
@@ -72,7 +76,7 @@ export default function MenuScreen() {
   const [restaurantLoading, setRestaurantLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. Fetch live contextual food items
+  // Fetch live contextual food items
   useEffect(() => {
     const fetchItems = async () => {
       setLoading(true);
@@ -113,7 +117,7 @@ export default function MenuScreen() {
     fetchItems();
   }, [activeCategory, baseUrl]);
 
-  // 2. Fetch live restaurant directory profiles on application mount
+  // Fetch live restaurant directory profiles on application mount
   useEffect(() => {
     const fetchRestaurants = async () => {
       setRestaurantLoading(true);
@@ -215,12 +219,20 @@ export default function MenuScreen() {
           <Text className="text-xs uppercase tracking-[0.3em] text-primary font-bold">
             Deliver to
           </Text>
+          
+          {/* 2. Dispatches selectable flag configurations directly down routing payload metrics */}
           <TouchableOpacity
-            onPress={() => router.push("/(customer)/addresses")}
+            onPress={() => 
+              router.push({
+                pathname: "/(customer)/addresses",
+                params: { selectable: "true" } // 👈 Forces selection mechanics over normal viewing mode safely!
+              })
+            }
             className="mt-3 flex-row items-center gap-2"
           >
             <Text className="text-base font-bold text-text">
-              Halal Lab office
+              {/* 3. Render dynamically returned address selection state fields, fallback to original mockup placeholder string */}
+              {params.selectedAddressLabel || "Halal Lab office"}
             </Text>
             <Ionicons name="chevron-down" size={18} color="#0D0D0D" />
           </TouchableOpacity>
@@ -287,7 +299,7 @@ export default function MenuScreen() {
         </View>
       )}
 
-      {/* 1. Global / 'All' Feed Category Container */}
+      {/* Global / 'All' Feed Category Container */}
       {activeCategory === "all" && (
         <View className="mt-8">
           <View className="flex-row items-center justify-between px-0 mb-4">
@@ -338,7 +350,7 @@ export default function MenuScreen() {
         </View>
       )}
 
-      {/* 2. Specific Query Category Container */}
+      {/* Specific Query Category Container */}
       {activeCategory !== "all" && (
         <View className="mt-8">
           <View className="flex-row items-center justify-between px-0 mb-4">
