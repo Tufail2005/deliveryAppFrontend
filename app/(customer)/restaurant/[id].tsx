@@ -29,14 +29,15 @@ interface ApiItemsResponse {
 }
 
 export default function RestaurantScreen() {
-  const { id, name, imageUrl, rating, eta, description } = useLocalSearchParams<{
-    id: string;
-    name: string;
-    imageUrl: string;
-    rating: string;
-    eta: string;
-    description: string;
-  }>();
+  const { id, name, imageUrl, rating, eta, description } =
+    useLocalSearchParams<{
+      id: string;
+      name: string;
+      imageUrl: string;
+      rating: string;
+      eta: string;
+      description: string;
+    }>();
 
   const [selectedItem, setSelectedItem] = useState<GridFoodItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -46,21 +47,24 @@ export default function RestaurantScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { addToCart } = useCart();
+  const { cartItems, addToCart, updateQuantity, removeFromCart } = useCart();
 
   // Fetch ALL items for this specific restaurant without passing a category constraint
   useEffect(() => {
     const fetchEntireMenu = async () => {
       if (!id || !baseUrl) return;
-      
+
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get<ApiItemsResponse>(`${baseUrl}/customer/restaurants/${id}/items`, {
-          params: {
-            restaurantId: id as string, // Only pass the restaurant ID to get everything!
-          },
-        });
+        const response = await axios.get<ApiItemsResponse>(
+          `${baseUrl}/customer/restaurants/${id}/items`,
+          {
+            params: {
+              restaurantId: id as string, // Only pass the restaurant ID to get everything!
+            },
+          }
+        );
 
         if (response.data?.items) {
           setItems(response.data.items);
@@ -102,6 +106,38 @@ export default function RestaurantScreen() {
     setModalVisible(false);
   };
 
+  const getItemQuantity = (itemId: string) => {
+    const cartItem = cartItems.find((i: any) => i.id === itemId);
+    return cartItem ? cartItem.quantity : 0;
+  };
+
+  const quickAdd = (item: GridFoodItem) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: 1,
+      imageUrl: item.imageUrl,
+      isVeg: true,
+      restaurantId: id || "rest_1",
+      restaurantName: name || item.restaurantName,
+    });
+  };
+
+  const handleIncrease = (item: GridFoodItem) => {
+    const currentQty = getItemQuantity(item.id);
+    updateQuantity(item.id, currentQty + 1);
+  };
+
+  const handleDecrease = (item: GridFoodItem) => {
+    const currentQty = getItemQuantity(item.id);
+    if (currentQty <= 1) {
+      removeFromCart(item.id);
+    } else {
+      updateQuantity(item.id, currentQty - 1);
+    }
+  };
+
   const renderHeader = () => (
     <View>
       <View className="relative w-full h-72 bg-gray-100 rounded-b-[40px] overflow-hidden">
@@ -134,7 +170,9 @@ export default function RestaurantScreen() {
           </View>
           <View className="flex-row items-center gap-1">
             <Ionicons name="time-outline" size={20} color="#FF863B" />
-            <Text className="text-sm text-text-muted">{eta || "25-35 min"}</Text>
+            <Text className="text-sm text-text-muted">
+              {eta || "25-35 min"}
+            </Text>
           </View>
         </View>
 
@@ -142,7 +180,9 @@ export default function RestaurantScreen() {
           {name || "Kitchen Partner"}
         </Text>
         <Text className="text-sm text-text-muted leading-6 mb-6">
-          {description? description:"Delicious meals prepared fresh daily with quality ingredients. Scroll down to see our full available menu"}
+          {description
+            ? description
+            : "Delicious meals prepared fresh daily with quality ingredients. Scroll down to see our full available menu"}
         </Text>
 
         <Text className="text-xl font-bold text-text mb-2">
@@ -170,7 +210,14 @@ export default function RestaurantScreen() {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
           renderItem={({ item }) => (
-            <FoodGridCard item={item} onPress={handleOpenItem} />
+            <FoodGridCard
+              item={item}
+              onPress={handleOpenItem}
+              onAdd={quickAdd}
+              cartQuantity={getItemQuantity(item.id)}
+              onIncrease={handleIncrease}
+              onDecrease={handleDecrease}
+            />
           )}
           numColumns={2}
           columnWrapperStyle={{

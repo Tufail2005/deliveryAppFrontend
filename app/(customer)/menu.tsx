@@ -13,7 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CategoryPill from "../../src/components/CategoryPill";
@@ -46,7 +46,7 @@ const getCategoryUI = (cat: ItemCategory) => {
 };
 
 const MENU_CATEGORIES = [
-  { id: "all", title: "All", icon: "flame" as const, image: undefined }, 
+  { id: "all", title: "All", icon: "flame" as const, image: undefined },
   ...Object.values(ItemCategory).map((cat) => getCategoryUI(cat)),
 ];
 
@@ -55,7 +55,7 @@ const remainingCount = MENU_CATEGORIES.length - 9;
 const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
 if (!baseUrl) {
-  console.warn('EXPO_PUBLIC_API_URL environment variable is not set');
+  console.warn("EXPO_PUBLIC_API_URL environment variable is not set");
 }
 
 export default function MenuScreen() {
@@ -79,25 +79,32 @@ export default function MenuScreen() {
       setError(null);
       try {
         if (!baseUrl) {
-          throw new Error('API URL not configured');
+          throw new Error("API URL not configured");
         }
-        
-        const response = await axios.get<ApiItemsResponse>(`${baseUrl}/customer/item`, {
-          params: { 
-            category: activeCategory === "all" ? undefined : activeCategory.toUpperCase() 
+
+        const response = await axios.get<ApiItemsResponse>(
+          `${baseUrl}/customer/item`,
+          {
+            params: {
+              category:
+                activeCategory === "all"
+                  ? undefined
+                  : activeCategory.toUpperCase(),
+            },
           }
-        });
+        );
 
         if (response.data?.items) {
           setItems(response.data.items);
         } else {
-          throw new Error('Invalid API response format');
+          throw new Error("Invalid API response format");
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch items';
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch items";
         console.error("Connection failed:", errorMessage);
         setError(errorMessage);
-        setItems([]); 
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -112,7 +119,9 @@ export default function MenuScreen() {
       setRestaurantLoading(true);
       try {
         if (!baseUrl) return;
-        const response = await axios.get<ApiRestaurantsResponse>(`${baseUrl}/customer/restaurants`);
+        const response = await axios.get<ApiRestaurantsResponse>(
+          `${baseUrl}/customer/restaurants`
+        );
         if (response.data?.restaurants) {
           setRestaurants(response.data.restaurants);
         }
@@ -126,7 +135,33 @@ export default function MenuScreen() {
     fetchRestaurants();
   }, [baseUrl]);
 
-  const { addToCart } = useCart();
+  const { cartItems, addToCart, updateQuantity, removeFromCart } = useCart();
+
+  // 2. Add a helper function to find an item's quantity in the cart
+  const getItemQuantity = (itemId: string) => {
+    const cartItem = cartItems.find((i: any) => i.id === itemId);
+    return cartItem ? cartItem.quantity : 0;
+  };
+
+  // 3. Add increment/decrement handlers
+  const handleIncrease = (item: GridFoodItem) => {
+    const currentQty = getItemQuantity(item.id);
+    updateQuantity(item.id, currentQty + 1);
+  };
+
+  const handleDecrease = (item: GridFoodItem) => {
+    const currentQty = getItemQuantity(item.id);
+    if (currentQty <= 1) {
+      removeFromCart(item.id);
+    } else {
+      updateQuantity(item.id, currentQty - 1);
+    }
+  };
+
+  const getRestaurantName = (restId: string) => {
+    const found = restaurants.find((r) => r.id === restId);
+    return found ? found.name : "this kitchen";
+  };
 
   const quickAdd = (item: GridFoodItem) => {
     addToCart({
@@ -136,8 +171,8 @@ export default function MenuScreen() {
       quantity: 1,
       imageUrl: item.imageUrl,
       isVeg: true,
-      restaurantId: item.restaurantName, 
-      restaurantName: item.restaurantName,
+      restaurantId: item.restaurantId,
+      restaurantName: getRestaurantName(item.restaurantId),
     });
   };
 
@@ -158,8 +193,8 @@ export default function MenuScreen() {
       quantity: quantity,
       imageUrl: item.imageUrl,
       isVeg: true,
-      restaurantId: item.restaurantName, 
-      restaurantName: item.restaurantName,
+      restaurantId: item.restaurantId,
+      restaurantName: getRestaurantName(item.restaurantId),
     });
     setModalVisible(false);
   };
@@ -245,7 +280,9 @@ export default function MenuScreen() {
 
       {error && (
         <View className="bg-red-100 border border-red-300 rounded-lg p-3 mt-6 mb-2">
-          <Text className="text-red-700 text-sm font-semibold">Error Loading Feed</Text>
+          <Text className="text-red-700 text-sm font-semibold">
+            Error Loading Feed
+          </Text>
           <Text className="text-red-600 text-xs mt-1">{error}</Text>
         </View>
       )}
@@ -272,7 +309,11 @@ export default function MenuScreen() {
             contentContainerStyle={{ paddingRight: 24 }}
           >
             {loading ? (
-              <ActivityIndicator size="small" color="#FF863B" className="py-8 pl-6" />
+              <ActivityIndicator
+                size="small"
+                color="#FF863B"
+                className="py-8 pl-6"
+              />
             ) : items.length > 0 ? (
               items.map((item) => (
                 <FoodGridCard
@@ -281,11 +322,16 @@ export default function MenuScreen() {
                   className="mr-4 w-[190px]"
                   onPress={() => handleOpenItem(item)}
                   onAdd={quickAdd}
+                  cartQuantity={getItemQuantity(item.id)}
+                  onIncrease={handleIncrease}
+                  onDecrease={handleDecrease}
                 />
               ))
             ) : (
               <View className="py-8 pl-6">
-                <Text className="text-gray-400 font-semibold">No food options available to explore.</Text>
+                <Text className="text-gray-400 font-semibold">
+                  No food options available to explore.
+                </Text>
               </View>
             )}
           </ScrollView>
@@ -308,7 +354,11 @@ export default function MenuScreen() {
             contentContainerStyle={{ paddingRight: 24 }}
           >
             {loading ? (
-              <ActivityIndicator size="small" color="#FF863B" className="py-8 pl-6" />
+              <ActivityIndicator
+                size="small"
+                color="#FF863B"
+                className="py-8 pl-6"
+              />
             ) : items.length > 0 ? (
               items.map((item) => (
                 <FoodGridCard
@@ -317,11 +367,18 @@ export default function MenuScreen() {
                   className="mr-4 w-[190px]"
                   onPress={() => handleOpenItem(item)}
                   onAdd={quickAdd}
+                  // --- NEW PROPS ADDED HERE ---
+                  cartQuantity={getItemQuantity(item.id)}
+                  onIncrease={handleIncrease}
+                  onDecrease={handleDecrease}
+                  // ----------------------------
                 />
               ))
             ) : (
               <View className="py-8 pl-6">
-                <Text className="text-gray-400 font-semibold">No kitchen items prepared for this category today.</Text>
+                <Text className="text-gray-400 font-semibold">
+                  No kitchen items prepared for this category today.
+                </Text>
               </View>
             )}
           </ScrollView>
@@ -362,7 +419,7 @@ export default function MenuScreen() {
                       imageUrl: item.imageUrl,
                       rating: item.rating.toString(),
                       eta: item.eta,
-                      description: item.description ?? "", // 👈 Added description parameter pass-through mapping
+                      description: item.description ?? "",
                     },
                   })
                 }
@@ -371,7 +428,9 @@ export default function MenuScreen() {
           )}
           ListEmptyComponent={
             <View className="py-12 flex items-center justify-center">
-              <Text className="text-gray-400 font-semibold text-base">No active partner kitchens found.</Text>
+              <Text className="text-gray-400 font-semibold text-base">
+                No active partner kitchens found.
+              </Text>
             </View>
           }
           contentContainerStyle={{ paddingBottom: 120 }}
