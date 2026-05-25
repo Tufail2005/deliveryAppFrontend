@@ -19,8 +19,10 @@ export default function VerifyScreen() {
     setLoading(true);
     try {
       // Actual API call to verifyOtp
+      // Format phone number with country code if not already present
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
       const response = await axios.post(`${API_URL}/auth/verifyOtp`, {
-        phone: phoneNumber,
+        phone: formattedPhone,
         otp: otp,
       });
 
@@ -35,7 +37,16 @@ export default function VerifyScreen() {
       if (user.role === "RESTAURANT_OWNER" || user.role === "SUPER_ADMIN") {
         router.replace("/(restaurant)/select-restaurant");
       } else {
-        router.replace("/(customer)/menu");
+        // For customers: check if user is new
+        // If isNewUser is true or user doesn't have complete profile, navigate to onboarding
+        if (user.isNewUser || !user.isProfileComplete) {
+          router.replace({
+            pathname: "/(auth)/onboarding",
+            params: { phoneNumber, token },
+          });
+        } else {
+          router.replace("/(customer)/menu");
+        }
       }
     } catch (error: any) {
       console.error("Verify OTP Error:", error.response?.data || error.message);

@@ -17,8 +17,10 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       // Call the sendOtp route
+      // Format phone number with country code if not already present
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
       const response = await axios.post(`${API_URL}/auth/sendOtp`, {
-        phone: phoneNumber,
+        phone: formattedPhone,
       });
 
       if (response.data.success || response.status === 200) {
