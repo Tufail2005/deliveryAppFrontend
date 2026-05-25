@@ -3,17 +3,18 @@ import { ItemCategory } from "@/src/types/catagories";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router"; // 👈 Integrated useLocalSearchParams
+import * as SecureStore from "expo-secure-store";
 import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CategoryPill from "../../src/components/CategoryPill";
@@ -21,7 +22,7 @@ import FloatingCartBanner from "../../src/components/FloatingCartBanner";
 import FoodGridCard, { GridFoodItem } from "../../src/components/FoodGridCard";
 import ItemDetailModal from "../../src/components/itemDetailModel";
 import RestaurantCard, {
-  Restaurant,
+    Restaurant,
 } from "../../src/components/RestaurantCard";
 import { useCart } from "../../src/contexts/CartContext";
 
@@ -33,6 +34,16 @@ interface ApiItemsResponse {
 
 interface ApiRestaurantsResponse {
   restaurants: Restaurant[];
+}
+
+interface UserAddress {
+  id: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  label: string | null | undefined;
 }
 
 const getCategoryUI = (cat: ItemCategory) => {
@@ -75,6 +86,63 @@ export default function MenuScreen() {
   const [loading, setLoading] = useState(false);
   const [restaurantLoading, setRestaurantLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Address state management
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [selectedAddressLabel, setSelectedAddressLabel] = useState<string>("Loading...");
+  const [addressLoading, setAddressLoading] = useState(true);
+
+  // Fetch user's saved addresses on mount
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        setAddressLoading(true);
+        const token = await SecureStore.getItemAsync("auth_token");
+
+        if (!token || !baseUrl) {
+          setSelectedAddressLabel("Select location");
+          return;
+        }
+
+        const response = await axios.get<UserAddress[]>(
+          `${baseUrl}/user/addresses`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          setAddresses(response.data);
+          // Set default address: prefer "Home" label, otherwise use first address
+          const homeAddress = response.data.find(
+            (addr) => addr.label?.toLowerCase() === "home"
+          );
+          const defaultAddress = homeAddress || response.data[0];
+          setSelectedAddressLabel(
+            defaultAddress.label || `${defaultAddress.street}, ${defaultAddress.city}`
+          );
+        } else {
+          setSelectedAddressLabel("Select location");
+        }
+      } catch (err) {
+        console.error("Failed to fetch addresses:", err);
+        setSelectedAddressLabel("Select location");
+      } finally {
+        setAddressLoading(false);
+      }
+    };
+
+    fetchAddresses();
+  }, []);
+
+  // Update selected address when params change (after selecting from addresses page)
+  useEffect(() => {
+    if (params.selectedAddressLabel) {
+      setSelectedAddressLabel(params.selectedAddressLabel);
+    }
+  }, [params.selectedAddressLabel]);
 
   // Fetch live contextual food items
   useEffect(() => {
@@ -232,7 +300,7 @@ export default function MenuScreen() {
           >
             <Text className="text-base font-bold text-text">
               {/* 3. Render dynamically returned address selection state fields, fallback to original mockup placeholder string */}
-              {params.selectedAddressLabel || "Halal Lab office"}
+              {selectedAddressLabel || "Select location"}
             </Text>
             <Ionicons name="chevron-down" size={18} color="#0D0D0D" />
           </TouchableOpacity>

@@ -125,102 +125,98 @@ export default function AddAddressScreen() {
       <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <Text className="text-3xl font-bold text-text">Save Location</Text>
         <Text className="mt-2 text-sm text-text-muted leading-6">
-          Pick the map location and add your address details below.
+          Add your address details below.
         </Text>
 
-        {/* Informational Visual Map Segment Block */}
-        <View className="mt-6 rounded-4xl bg-gray-100 p-5 items-center justify-center">
-          <View className="h-48 w-full rounded-4xl bg-white items-center justify-center shadow-sm border border-gray-200">
-            {fetchingLocation ? (
-              <ActivityIndicator size="small" color="#FF863B" />
-            ) : (
-              <Ionicons name="location-sharp" size={48} color="#FF863B" />
-            )}
-            <Text className="mt-4 text-sm text-text-muted">
-              {fetchingLocation ? "Pinpointing your GPS coordinates..." : "Location Pinned via Satellite"}
-            </Text>
+        {error && (
+          <View className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-4 flex-row items-center gap-3">
+            <Ionicons name="alert-circle" size={20} color="#EF4444" />
+            <Text className="text-red-700 font-semibold text-sm flex-1">{error}</Text>
           </View>
-          <View className="mt-4 w-full rounded-[28px] bg-white p-4 shadow-sm border border-gray-100">
-            <View className="flex-row items-center gap-3">
-              <Ionicons name="compass-outline" size={20} color="#4B5563" />
-              <Text className="text-xs text-text-muted flex-1 font-mono">
-                {latitude && longitude 
-                  ? `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}` 
-                  : "Fetching current telemetry calculations..."}
-              </Text>
-            </View>
+        )}
+
+        {/* Address Section */}
+        <Text className="mt-8 text-lg font-semibold text-text">Address</Text>
+        <FormInput
+          label="Street Address"
+          placeholder="Enter your street address"
+          value={street}
+          onChangeText={setStreet}
+          editable={!submitting}
+        />
+
+        <FormInput
+          label="Apartment/Suite (Optional)"
+          placeholder="Apt, Suite, Floor, etc."
+          value={apartment}
+          onChangeText={setApartment}
+          editable={!submitting}
+        />
+
+        <View className="flex-row gap-4">
+          <View className="flex-1">
+            <FormInput
+              label="City"
+              placeholder="Golaghat"
+              value="Golaghat"
+              editable={false}
+            />
+          </View>
+          <View className="flex-1">
+            <FormInput
+              label="State"
+              placeholder="Assam"
+              value="Assam"
+              editable={false}
+            />
           </View>
         </View>
 
-        {/* Form Container Structure */}
-        <View className="mt-6 space-y-4">
-          {error && (
-            <View className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-2 flex-row items-center gap-3">
-              <Ionicons name="alert-circle" size={20} color="#EF4444" />
-              <Text className="text-red-700 font-semibold text-sm flex-1">{error}</Text>
-            </View>
-          )}
+        <FormInput
+          label="Zip Code"
+          placeholder="Enter zip code"
+          value={zipCode}
+          onChangeText={setZipCode}
+          keyboardType="numeric"
+          editable={!submitting}
+        />
 
-          <FormInput 
-            label="Street" 
-            placeholder="Hason Nagar" 
-            value={street}
-            onChangeText={setStreet}
-          />
-          <FormInput
-            label="Post code"
-            placeholder="34567"
-            keyboardType="numeric"
-            value={zipCode}
-            onChangeText={setZipCode}
-          />
-          <FormInput
-            label="Apartment"
-            placeholder="345"
-            keyboardType="numeric"
-            value={apartment}
-            onChangeText={setApartment}
-          />
-
-          <Text className="text-sm font-bold text-text-muted top-1 uppercase tracking-[0.18em]">
-            Label as
-          </Text>
-          <View className="flex-row items-center gap-3 mt-1">
-            {[
-              { key: "home", text: "Home" },
-              { key: "work", text: "Work" },
-              { key: "other", text: "Other" },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.key}
-                onPress={() => setLabel(option.key)}
-                className={`flex-1 rounded-full px-4 py-3 items-center justify-center border ${
-                  label === option.key
-                    ? "border-primary bg-primary/10"
-                    : "border-gray-200 bg-gray-50"
+        {/* Label Selection */}
+        <Text className="mt-8 text-lg font-semibold text-text">Label as</Text>
+        <View className="flex-row items-center gap-3 mt-4 mb-4">
+          {[
+            { key: "home", text: "Home" },
+            { key: "work", text: "Work" },
+            { key: "other", text: "Other" },
+          ].map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              onPress={() => setLabel(option.key)}
+              disabled={submitting}
+              className={`flex-1 rounded-full px-4 py-3 items-center justify-center border ${
+                label === option.key
+                  ? "border-primary bg-primary/10"
+                  : "border-gray-200 bg-gray-50"
+              }`}
+            >
+              <Text
+                className={`text-sm font-semibold ${
+                  label === option.key ? "text-primary" : "text-text"
                 }`}
               >
-                <Text
-                  className={`text-sm font-semibold ${
-                    label === option.key ? "text-primary" : "text-text"
-                  }`}
-                >
-                  {option.text}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                {option.text}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        <View className="mt-10">
+        <View className="mt-8 mb-4">
           {submitting ? (
-            <View className="bg-primary p-4 rounded-xl items-center justify-center h-14">
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            </View>
+            <ActivityIndicator size="large" color="#FF863B" />
           ) : (
             <PrimaryButton
               title="Save location"
-              disabled={fetchingLocation} // Don't let them click if geo coordinates are still gathering
+              disabled={fetchingLocation}
               onPress={handleSaveLocation}
             />
           )}
