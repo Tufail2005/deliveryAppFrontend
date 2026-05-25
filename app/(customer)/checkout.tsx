@@ -1,116 +1,314 @@
+import { useRazorpay } from "@codearcade/expo-razorpay";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect, useState } from "react";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+
 import BackButton from "../../src/components/BackButton";
 import PrimaryButton from "../../src/components/PrimaryButton";
 import { useCart } from "../../src/contexts/CartContext";
 
 const PAYMENT_METHODS = [
-  { id: "cash", title: "Cash" },
-  { id: "visa", title: "Visa" },
-  { id: "mastercard", title: "Mastercard" },
-  { id: "paypal", title: "Paypal" },
+  { id: "upi", title: "UPI (GPay/PhonePe)", icon: "flash-outline" as const },
+  { id: "card", title: "Credit/Debit Card", icon: "card-outline" as const },
+  { id: "cash", title: "Cash on Delivery", icon: "cash-outline" as const },
 ];
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const { total } = useCart();
-  const [method, setMethod] = useState("mastercard");
-  const [hasCard, setHasCard] = useState(true);
+  const { cartItems, total, clearCart } = useCart();
+  const { openCheckout, RazorpayUI } = useRazorpay();
 
-  const handlePay = () => {
-    router.push("/(customer)/success");
+  const [method, setMethod] = useState("upi");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // --- NEW: Dynamic Address State ---
+  const [addressId, setAddressId] = useState<string | null>(null);
+  const [loadingAddress, setLoadingAddress] = useState(true);
+
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+  // Fetch the user's saved addresses when they open checkout
+  useEffect(() => {
+    const fetchSavedAddress = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("auth_token");
+
+        // Make sure this path matches your app.ts router (e.g., /user or /users)
+        const response = await axios.get(`${API_URL}/user/addresses`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // FIX: response.data IS the array!
+        const addresses = response.data;
+
+        if (Array.isArray(addresses) && addresses.length > 0) {
+          setAddressId(addresses[0].id); // Grab the ID of the first address
+        }
+      } catch (error) {
+        console.error("Could not fetch addresses:", error);
+      } finally {
+        setLoadingAddress(false);
+      }
+    };
+
+    fetchSavedAddress();
+  }, []);
+
+  const handlePayAndConfirm = async () => {
+    // 1. Safety Checks
+    if (cartItems.length === 0) {
+      Alert.alert(
+        "Empty Cart",
+        "Please add items to your cart before checking out."
+      );
+      return;
+    }
+
+    if (!addressId) {
+      Alert.alert(
+        "Missing Address",
+        "Please add a delivery address before placing an order."
+      );
+      return;
+    }
+
+    if (method === "cash") {
+      Alert.alert("COD Selected", "Process order with Cash on Delivery?");
+      // TODO: Build your backend hit for COD here (No Razorpay needed)
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const token = await SecureStore.getItemAsync("auth_token");
+
+      // 2
+      // Wrapping quantity in Number() ensures Zod's z.number().int() does not throw a 400
+      const formattedItems = cartItems.map((item) => ({
+        menuItemId: item.id,
+        quantity: Number(item.quantity),
+      }));
+
+      // 3. Construct the dynamic valid payload object
+      const orderPayload = {
+        restaurantId: cartItems[0].restaurantId,
+        addressId: addressId,
+        items: formattedItems,
+      };
+
+      // 4. Hit your place-order controller
+      const orderResponse = await axios.post(
+        `${API_URL}/order/place-order`,
+        orderPayload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const { order, paymentDetails } = orderResponse.data;
+
+      // 5. Configure Razorpay parameters
+      const checkoutOptions: any = {
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID!,
+        amount: paymentDetails.amount,
+        currency: paymentDetails.currency,
+        order_id: paymentDetails.razorpayOrderId,
+        name: "Asu bhai Delivery",
+        description: `Order Payment`,
+        theme: { color: "#FF863B" },
+        prefill: {
+          name: "Customer Name",
+          email: "customer@example.com",
+          contact: "9999999999",
+        },
+      };
+
+      // ONLY force a direct app launch if they specifically chose UPI.
+      // Otherwise, let Razorpay open its beautiful default modal for Cards!
+      if (method === "upi") {
+        checkoutOptions.method = "upi";
+      }
+
+      // 6. Fire up the native UI handler
+      openCheckout(checkoutOptions, {
+        onSuccess: async (data) => {
+          try {
+            const verificationResponse = await axios.post(
+              `${API_URL}/order/verify-payment`,
+              {
+                razorpay_order_id: data.razorpay_order_id,
+                razorpay_payment_id: data.razorpay_payment_id,
+                razorpay_signature: data.razorpay_signature,
+                database_order_id: order.id,
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (verificationResponse.data.success) {
+              clearCart();
+              router.replace("/(customer)/success");
+            }
+          } catch (verifyErr: any) {
+            console.error(
+              "Verification Error:",
+              verifyErr?.response?.data || verifyErr
+            );
+            Alert.alert(
+              "Payment Error",
+              "Security signature validation failed."
+            );
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        onFailure: (error: any) => {
+          setIsProcessing(false);
+          // Safely check if error exists to prevent crash
+          const errorMessage =
+            error?.description ||
+            error?.message ||
+            "User closed payment window.";
+          Alert.alert("Transaction Aborted", errorMessage);
+        },
+      });
+    } catch (err: any) {
+      // --- REVEAL EXACT ZOD ERROR ---
+      if (err.response && err.response.data) {
+        console.error(
+          "BACKEND REJECTION DETAILS:",
+          JSON.stringify(err.response.data, null, 2)
+        );
+
+        // Extract Zod validation messages if they exist
+        let errorMsg =
+          err.response.data.message || "Invalid data sent to server";
+        if (err.response.data.errors && err.response.data.errors.length > 0) {
+          errorMsg = err.response.data.errors[0].message; // Unmasks specific missing fields
+        }
+
+        Alert.alert("Validation Error", errorMsg);
+      } else {
+        console.error("Payment initialization failure:", err);
+        Alert.alert("Checkout Error", "Failed to create your order session.");
+      }
+      setIsProcessing(false);
+    }
   };
 
   return (
     <View className="flex-1 bg-bg">
       <View className="px-6 pt-6 flex-row items-center justify-between">
         <BackButton />
-        <Text className="text-base font-bold text-primary">Payment</Text>
+        <Text className="text-base font-bold text-primary">
+          Payment Methods
+        </Text>
         <View className="w-12" />
       </View>
 
       <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false}>
         <View className="rounded-[32px] bg-white p-5 shadow-sm border border-gray-100">
-          <Text className="text-base font-semibold text-text mb-4">Select payment method</Text>
-          <View className="flex-row gap-3 flex-wrap">
+          <Text className="text-base font-semibold text-text mb-4">
+            Select payment method
+          </Text>
+          <View className="flex-col gap-3">
             {PAYMENT_METHODS.map((option) => (
               <TouchableOpacity
                 key={option.id}
-                onPress={() => {
-                  setMethod(option.id);
-                  if (option.id !== "mastercard") setHasCard(false);
-                }}
-                className={`w-[45%] rounded-3xl px-4 py-4 border ${
-                  method === option.id ? "border-primary bg-primary/10" : "border-gray-200 bg-gray-50"
+                onPress={() => setMethod(option.id)}
+                className={`w-full rounded-2xl px-5 py-4 border flex-row items-center justify-between ${
+                  method === option.id
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-200 bg-gray-50"
                 }`}
               >
-                <View className="flex-row items-center gap-3">
-                  <Ionicons
-                    name={
-                      option.id === "cash"
-                        ? "cash-outline"
-                        : option.id === "visa"
-                        ? "card-outline"
-                        : option.id === "mastercard"
-                        ? "card-outline"
-                        : "logo-paypal"
-                    }
-                    size={20}
-                    color={method === option.id ? "#FF863B" : "#6B7280"}
-                  />
-                  <Text className={`text-sm font-semibold ${method === option.id ? "text-primary" : "text-text"}`}>
+                <View className="flex-row items-center gap-4">
+                  <View
+                    className={`w-10 h-10 rounded-full items-center justify-center ${
+                      method === option.id ? "bg-primary/20" : "bg-gray-200"
+                    }`}
+                  >
+                    <Ionicons
+                      name={option.icon}
+                      size={20}
+                      color={method === option.id ? "#FF863B" : "#4B5563"}
+                    />
+                  </View>
+                  <Text
+                    className={`text-base font-bold ${
+                      method === option.id ? "text-primary" : "text-text"
+                    }`}
+                  >
                     {option.title}
                   </Text>
+                </View>
+
+                <View
+                  className={`w-5 h-5 rounded-full border items-center justify-center ${
+                    method === option.id ? "border-primary" : "border-gray-400"
+                  }`}
+                >
+                  {method === option.id && (
+                    <View className="w-2.5 h-2.5 rounded-full bg-primary" />
+                  )}
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View className="mt-6 rounded-[32px] bg-white p-5 shadow-sm border border-gray-100">
-          {hasCard ? (
-            <View>
-              <Text className="text-base font-semibold text-text mb-4">Master Card</Text>
-              <View className="rounded-[28px] bg-primary/10 p-5 shadow-sm border border-primary/20">
-                <Text className="text-sm text-text-muted mb-3">**** **** **** 436</Text>
-                <Text className="text-lg font-bold text-text mb-2">Mastercard</Text>
-                <Text className="text-sm text-text-muted">Valid thru 08/28</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setHasCard(false)}
-                className="mt-4 rounded-3xl border border-gray-200 bg-gray-50 px-4 py-3 items-center"
-              >
-                <Text className="text-sm font-semibold text-primary">+ Add new</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View>
-              <View className="rounded-[28px] bg-gray-100 p-6 items-center justify-center">
-                <Text className="text-2xl">💳</Text>
-                <Text className="mt-3 text-sm text-text-muted text-center">
-                  No master card added. You can add a mastercard and save it for later.
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setHasCard(true)}
-                className="mt-4 rounded-3xl border border-gray-200 bg-gray-50 px-4 py-3 items-center"
-              >
-                <Text className="text-sm font-semibold text-primary">+ Add new</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+        <View className="mt-6 rounded-[32px] bg-white p-5 shadow-sm border border-gray-100 items-center justify-center p-6">
+          <Ionicons
+            name={
+              method === "upi"
+                ? "logo-android"
+                : method === "card"
+                ? "card"
+                : "cash"
+            }
+            size={36}
+            color="#9CA3AF"
+          />
+          <Text className="mt-3 text-sm text-text-muted text-center leading-5">
+            {method === "upi"
+              ? "Clicking Pay will launch an instant drawer showing installed UPI utility apps on this phone."
+              : method === "card"
+              ? "Pay securely using credit card networks, debit accounts, or saved international token systems."
+              : "Pay directly using hard currency notes when your delivery agent drops off the carrier items."}
+          </Text>
         </View>
+
+        {/* --- DYNAMIC ADDRESS STATUS WARNING --- */}
+        {!addressId && !loadingAddress && (
+          <View className="mt-6 bg-red-50 border border-red-200 p-4 rounded-2xl flex-row items-center gap-3">
+            <Ionicons name="warning-outline" size={20} color="#EF4444" />
+            <Text className="text-red-600 font-medium flex-1 text-sm">
+              No delivery address found. Please add an address to continue.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <View className="border-t border-gray-100 bg-white px-6 pt-5 pb-14">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-sm text-text-muted">Total</Text>
+          <Text className="text-sm text-text-muted">Total Bill Amount</Text>
           <Text className="text-2xl font-bold text-text">₹{total}</Text>
         </View>
-        <PrimaryButton title="Pay & confirm" onPress={handlePay} />
+        <PrimaryButton
+          title={
+            loadingAddress
+              ? "Loading..."
+              : isProcessing
+              ? "Connecting Gateway..."
+              : "Pay & confirm"
+          }
+          onPress={handlePayAndConfirm}
+          disabled={isProcessing || loadingAddress}
+        />
       </View>
+
+      {RazorpayUI}
     </View>
   );
 }
