@@ -7,14 +7,14 @@ import * as SecureStore from "expo-secure-store";
 import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CategoryPill from "../../src/components/CategoryPill";
@@ -22,7 +22,7 @@ import FloatingCartBanner from "../../src/components/FloatingCartBanner";
 import FoodGridCard, { GridFoodItem } from "../../src/components/FoodGridCard";
 import ItemDetailModal from "../../src/components/itemDetailModel";
 import RestaurantCard, {
-    Restaurant,
+  Restaurant,
 } from "../../src/components/RestaurantCard";
 import { useCart } from "../../src/contexts/CartContext";
 
@@ -44,6 +44,7 @@ interface UserAddress {
   zipCode: string;
   country: string;
   label: string | null | undefined;
+  isDefault: boolean;
 }
 
 const getCategoryUI = (cat: ItemCategory) => {
@@ -71,7 +72,7 @@ if (!baseUrl) {
 
 export default function MenuScreen() {
   const router = useRouter();
-  
+
   // 1. Hook up search parameters to parse values returned backward from address selections
   const params = useLocalSearchParams<{ selectedAddressLabel?: string }>();
 
@@ -89,7 +90,8 @@ export default function MenuScreen() {
 
   // Address state management
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [selectedAddressLabel, setSelectedAddressLabel] = useState<string>("Loading...");
+  const [selectedAddressLabel, setSelectedAddressLabel] =
+    useState<string>("Loading...");
   const [addressLoading, setAddressLoading] = useState(true);
 
   // Fetch user's saved addresses on mount
@@ -106,22 +108,20 @@ export default function MenuScreen() {
 
         const response = await axios.get<UserAddress[]>(
           `${baseUrl}/user/addresses`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
         if (Array.isArray(response.data) && response.data.length > 0) {
           setAddresses(response.data);
-          // Set default address: prefer "Home" label, otherwise use first address
-          const homeAddress = response.data.find(
-            (addr) => addr.label?.toLowerCase() === "home"
-          );
-          const defaultAddress = homeAddress || response.data[0];
+
+          // 👈 DIRECT DATABASE LOOKUP
+          // Find the active address natively, fallback to index 0 just in case
+          const activeAddress =
+            response.data.find((addr) => addr.isDefault) || response.data[0];
+
           setSelectedAddressLabel(
-            defaultAddress.label || `${defaultAddress.street}, ${defaultAddress.city}`
+            activeAddress.label ||
+              `${activeAddress.street}, ${activeAddress.city}`
           );
         } else {
           setSelectedAddressLabel("Select location");
@@ -287,13 +287,13 @@ export default function MenuScreen() {
           <Text className="text-xs uppercase tracking-[0.3em] text-primary font-bold">
             Deliver to
           </Text>
-          
+
           {/* 2. Dispatches selectable flag configurations directly down routing payload metrics */}
           <TouchableOpacity
-            onPress={() => 
+            onPress={() =>
               router.push({
                 pathname: "/(customer)/addresses",
-                params: { selectable: "true" } // 👈 Forces selection mechanics over normal viewing mode safely!
+                params: { selectable: "true" }, // 👈 Forces selection mechanics over normal viewing mode safely!
               })
             }
             className="mt-3 flex-row items-center gap-2"

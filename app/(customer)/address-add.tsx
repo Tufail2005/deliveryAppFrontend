@@ -4,7 +4,13 @@ import * as Location from "expo-location"; // 👈 1. Import Expo Location
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import BackButton from "../../src/components/BackButton";
 import FormInput from "../../src/components/FormInput";
 import PrimaryButton from "../../src/components/PrimaryButton";
@@ -13,12 +19,12 @@ const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function AddAddressScreen() {
   const router = useRouter();
-  
+
   // Form input management hooks
   const [street, setStreet] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [apartment, setApartment] = useState(""); 
-  const [label, setLabel] = useState("home"); 
+  const [apartment, setApartment] = useState("");
+  const [label, setLabel] = useState("home");
 
   // 2. State hooks to store the real physical hardware coordinates
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -34,12 +40,14 @@ export default function AddAddressScreen() {
     const getDeviceLocation = async () => {
       try {
         setFetchingLocation(true);
-        
+
         // Request runtime permission from iOS/Android operating systems
         const { status } = await Location.requestForegroundPermissionsAsync();
-        
+
         if (status !== "granted") {
-          setError("Permission to access location was denied. Using default coordinates.");
+          setError(
+            "Permission to access location was denied. Using default coordinates."
+          );
           // Fallback placeholders if user blocks access
           setLatitude(26.52);
           setLongitude(93.96);
@@ -83,20 +91,21 @@ export default function AddAddressScreen() {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      const formattedStreet = apartment.trim() 
+      const formattedStreet = apartment.trim()
         ? `Apt ${apartment.trim()}, ${street.trim()}`
         : street.trim();
 
       // 4. Injected real coordinate numbers directly into the data payload
       const payload = {
         street: formattedStreet,
-        city: "Golaghat",         
+        city: "Golaghat",
         state: "Assam",
         zipCode: zipCode.trim(),
         country: "India",
-        label: label.charAt(0).toUpperCase() + label.slice(1), 
-        latitude: latitude ?? 26.52,  // Submits real lat, falls back safely if hook is slow
-        longitude: longitude ?? 93.96 // Submits real lng, falls back safely if hook is slow
+        label: label.charAt(0).toUpperCase() + label.slice(1),
+        latitude: latitude ?? 26.52, // Submits real lat, falls back safely if hook is slow
+        longitude: longitude ?? 93.96, // Submits real lng, falls back safely if hook is slow
+        isDefault: true,
       };
 
       const response = await axios.post(`${baseUrl}/user/address`, payload, {
@@ -110,7 +119,11 @@ export default function AddAddressScreen() {
       }
     } catch (err: any) {
       console.error("Add Address Submission Crash:", err);
-      setError(err.response?.data?.message || err.response?.data?.errors?._errors?.[0] || "Failed to save address details");
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.errors?._errors?.[0] ||
+          "Failed to save address details"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -122,7 +135,11 @@ export default function AddAddressScreen() {
         <BackButton />
       </View>
 
-      <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        className="px-6 pt-6"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         <Text className="text-3xl font-bold text-text">Save Location</Text>
         <Text className="mt-2 text-sm text-text-muted leading-6">
           Add your address details below.
@@ -131,7 +148,9 @@ export default function AddAddressScreen() {
         {error && (
           <View className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-4 flex-row items-center gap-3">
             <Ionicons name="alert-circle" size={20} color="#EF4444" />
-            <Text className="text-red-700 font-semibold text-sm flex-1">{error}</Text>
+            <Text className="text-red-700 font-semibold text-sm flex-1">
+              {error}
+            </Text>
           </View>
         )}
 
