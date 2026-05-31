@@ -17,7 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ActiveOrderBar from "../../src/components/ActiveOrderBar"; // 🚀 1. Imported your live tracking banner
+import ActiveOrderBar from "../../src/components/ActiveOrderBar";
 import CategoryPill from "../../src/components/CategoryPill";
 import FloatingCartBanner from "../../src/components/FloatingCartBanner";
 import FoodGridCard, { GridFoodItem } from "../../src/components/FoodGridCard";
@@ -54,7 +54,7 @@ const getCategoryUI = (cat: ItemCategory) => {
     id: cat,
     title: config.title,
     image: "image" in config ? config.image : undefined,
-    icon: "icon" in config ? config.icon : undefined,
+    icon: "icon" in config ? (config.icon as IonName) : undefined,
   };
 };
 
@@ -63,8 +63,7 @@ const MENU_CATEGORIES = [
   ...Object.values(ItemCategory).map((cat) => getCategoryUI(cat)),
 ];
 
-const visibleCategories = MENU_CATEGORIES.slice(0, 9);
-const remainingCount = MENU_CATEGORIES.length - 9;
+// 🚀 FIXED: Removed the .slice limit and counter indicators so everything displays smoothly!
 const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
 if (!baseUrl) {
@@ -73,8 +72,6 @@ if (!baseUrl) {
 
 export default function MenuScreen() {
   const router = useRouter();
-
-  // 1. Hook up search parameters to parse values returned backward from address selections
   const params = useLocalSearchParams<{ selectedAddressLabel?: string }>();
 
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -91,8 +88,7 @@ export default function MenuScreen() {
 
   // Address state management
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [selectedAddressLabel, setSelectedAddressLabel] =
-    useState<string>("Loading...");
+  const [selectedAddressLabel, setSelectedAddressLabel] = useState<string>("Loading...");
   const [addressLoading, setAddressLoading] = useState(true);
 
   // Fetch user's saved addresses EVERY TIME the screen comes into focus
@@ -112,10 +108,29 @@ export default function MenuScreen() {
             return;
           }
 
+<<<<<<< HEAD
           const response = await axios.get<UserAddress[]>(
             `${baseUrl}/user/addresses`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
+=======
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          setAddresses(response.data);
+          const activeAddress = response.data.find((addr) => addr.isDefault) || response.data[0];
+          setSelectedAddressLabel(
+            activeAddress.label || `${activeAddress.street}, ${activeAddress.city}`
+          );
+        } else {
+          setSelectedAddressLabel("Select location");
+        }
+      } catch (err) {
+        console.error("Failed to fetch addresses:", err);
+        setSelectedAddressLabel("Select location");
+      } finally {
+        setAddressLoading(false);
+      }
+    };
+>>>>>>> 5c66706 (modiifed code for categories and ActiveOrderBar)
 
           if (Array.isArray(response.data) && response.data.length > 0) {
             setAddresses(response.data);
@@ -179,8 +194,7 @@ export default function MenuScreen() {
           throw new Error("Invalid API response format");
         }
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to fetch items";
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch items";
         console.error("Connection failed:", errorMessage);
         setError(errorMessage);
         setItems([]);
@@ -292,14 +306,18 @@ export default function MenuScreen() {
           <Text className="text-xs uppercase tracking-[0.3em] text-primary font-bold">
             Deliver to
           </Text>
+<<<<<<< HEAD
 
           {/* 2. Dispatches selectable flag configurations directly down routing payload metrics */}
 
+=======
+          
+>>>>>>> 5c66706 (modiifed code for categories and ActiveOrderBar)
           <TouchableOpacity
             onPress={() =>
               router.push({
                 pathname: "/(customer)/addresses",
-                params: { selectable: "true" }, // 👈 Forces selection mechanics over normal viewing mode safely!
+                params: { selectable: "true" }, 
               })
             }
             className="mt-3 flex-row items-center gap-2"
@@ -336,13 +354,14 @@ export default function MenuScreen() {
         />
       </View>
 
+      {/* 🚀 MODIFIED HACK: Shows all items sequentially, completely bypassing any button truncation loops */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         className="mt-6 -mx-6 pl-6"
         contentContainerStyle={{ paddingRight: 24 }}
       >
-        {visibleCategories.map((category) => (
+        {MENU_CATEGORIES.map((category) => (
           <CategoryPill
             key={category.id}
             title={category.title}
@@ -352,15 +371,6 @@ export default function MenuScreen() {
             onPress={() => setActiveCategory(category.id)}
           />
         ))}
-        {remainingCount > 0 && (
-          <CategoryPill
-            title="See All"
-            iconName="grid-outline"
-            iconColor="#6B7280"
-            isActive={false}
-            onPress={() => router.push("/(customer)/all-categories" as any)}
-          />
-        )}
       </ScrollView>
 
       {error && (
@@ -527,8 +537,6 @@ export default function MenuScreen() {
       />
 
       <FloatingCartBanner />
-
-      {/* 🚀 2. MOUNTED HERE: Renders the active order bar beautifully over your list layout layer */}
       <ActiveOrderBar />
     </SafeAreaView>
   );

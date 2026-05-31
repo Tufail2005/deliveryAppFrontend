@@ -194,6 +194,7 @@ export default function ProfileScreen() {
               onPress={async () => {
                 // Completely erase the current token on sign out
                 await SecureStore.deleteItemAsync("auth_token");
+                await SecureStore.deleteItemAsync(`active_order_id_${user?.id}`);
                 router.replace("/(auth)/login");
               }}
               iconColor="#FF4B4B"
