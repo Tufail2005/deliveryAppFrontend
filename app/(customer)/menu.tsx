@@ -2,10 +2,10 @@ import { CATEGORY_UI_CONFIG } from "@/src/constants/allCatagories";
 import { ItemCategory } from "@/src/types/catagories";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import type { ComponentProps } from "react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -95,52 +95,54 @@ export default function MenuScreen() {
     useState<string>("Loading...");
   const [addressLoading, setAddressLoading] = useState(true);
 
-  // Fetch user's saved addresses on mount
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      try {
-        setAddressLoading(true);
-        const token = await SecureStore.getItemAsync("auth_token");
+  // Fetch user's saved addresses EVERY TIME the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchAddresses = async () => {
+        try {
+          // Only show loading state if we don't already have a label
+          if (selectedAddressLabel === "Loading...") {
+            setAddressLoading(true);
+          }
 
-        if (!token || !baseUrl) {
-          setSelectedAddressLabel("Select location");
-          return;
-        }
+          const token = await SecureStore.getItemAsync("auth_token");
 
-        const response = await axios.get<UserAddress[]>(
-          `${baseUrl}/user/addresses`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+          if (!token || !baseUrl) {
+            setSelectedAddressLabel("Select location");
+            return;
+          }
 
-        if (Array.isArray(response.data) && response.data.length > 0) {
-          setAddresses(response.data);
-
-          // 👈 DIRECT DATABASE LOOKUP
-          // Find the active address natively, fallback to index 0 just in case
-          const activeAddress =
-            response.data.find((addr) => addr.isDefault) || response.data[0];
-
-          const homeAddress = response.data.find(
-            (addr) => addr.label?.toLowerCase() === "home"
+          const response = await axios.get<UserAddress[]>(
+            `${baseUrl}/user/addresses`,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
-          const defaultAddress = homeAddress || response.data[0];
-          setSelectedAddressLabel(
-            activeAddress.label ||
-              `${activeAddress.street}, ${activeAddress.city}`
-          );
-        } else {
-          setSelectedAddressLabel("Select location");
-        }
-      } catch (err) {
-        console.error("Failed to fetch addresses:", err);
-        setSelectedAddressLabel("Select location");
-      } finally {
-        setAddressLoading(false);
-      }
-    };
 
-    fetchAddresses();
-  }, []);
+          if (Array.isArray(response.data) && response.data.length > 0) {
+            setAddresses(response.data);
+
+            // 👈 DIRECT DATABASE LOOKUP
+            // Find the active address natively, fallback to index 0 just in case
+            const activeAddress =
+              response.data.find((addr) => addr.isDefault) || response.data[0];
+
+            setSelectedAddressLabel(
+              activeAddress.label ||
+                `${activeAddress.street}, ${activeAddress.city}`
+            );
+          } else {
+            setSelectedAddressLabel("Select location");
+          }
+        } catch (err) {
+          console.error("Failed to fetch addresses:", err);
+          setSelectedAddressLabel("Select location");
+        } finally {
+          setAddressLoading(false);
+        }
+      };
+
+      fetchAddresses();
+    }, []) // Keep this dependency array empty so the callback itself is cached
+  );
 
   // Update selected address when params change
   useEffect(() => {
@@ -292,7 +294,7 @@ export default function MenuScreen() {
           </Text>
 
           {/* 2. Dispatches selectable flag configurations directly down routing payload metrics */}
-          
+
           <TouchableOpacity
             onPress={() =>
               router.push({
@@ -320,7 +322,7 @@ export default function MenuScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text className="text-3xl font-bold text-text">Hey Halal,</Text>
+      <Text className="text-3xl font-bold text-text">Hey,</Text>
       <Text className="text-3xl font-bold text-text">Good Afternoon!</Text>
 
       <View className="mt-6 rounded-3xl bg-white px-4 py-4 shadow-sm border border-gray-100 flex-row items-center gap-3">
