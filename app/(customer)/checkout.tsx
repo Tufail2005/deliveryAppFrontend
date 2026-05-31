@@ -24,7 +24,7 @@ export default function CheckoutScreen() {
   const [method, setMethod] = useState("upi");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- NEW: Dynamic Address State ---
+  // --- Dynamic Address State ---
   const [addressId, setAddressId] = useState<string | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(true);
 
@@ -36,12 +36,10 @@ export default function CheckoutScreen() {
       try {
         const token = await SecureStore.getItemAsync("auth_token");
 
-        // Make sure this path matches your app.ts router (e.g., /user or /users)
         const response = await axios.get(`${API_URL}/user/addresses`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // FIX: response.data IS the array!
         const addresses = response.data;
 
         if (Array.isArray(addresses) && addresses.length > 0) {
@@ -77,7 +75,6 @@ export default function CheckoutScreen() {
 
     if (method === "cash") {
       Alert.alert("COD Selected", "Process order with Cash on Delivery?");
-      // TODO: Build your backend hit for COD here (No Razorpay needed)
       return;
     }
 
@@ -86,21 +83,20 @@ export default function CheckoutScreen() {
     try {
       const token = await SecureStore.getItemAsync("auth_token");
 
-      // 2
-      // Wrapping quantity in Number() ensures Zod's z.number().int() does not throw a 400
+      // Wrapping quantity in Number() ensures Zod's validation rules clear smoothly
       const formattedItems = cartItems.map((item) => ({
         menuItemId: item.id,
         quantity: Number(item.quantity),
       }));
 
-      // 3. Construct the dynamic valid payload object
+      // Construct valid payload object definitions
       const orderPayload = {
         restaurantId: cartItems[0].restaurantId,
         addressId: addressId,
         items: formattedItems,
       };
 
-      // 4. Hit your place-order controller
+      // Hit your place-order backend track controller
       const orderResponse = await axios.post(
         `${API_URL}/order/place-order`,
         orderPayload,
@@ -109,7 +105,7 @@ export default function CheckoutScreen() {
 
       const { order, paymentDetails } = orderResponse.data;
 
-      // 5. Configure Razorpay parameters
+      // Configure Razorpay parameters
       const checkoutOptions: any = {
         key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID!,
         amount: paymentDetails.amount,
@@ -125,13 +121,11 @@ export default function CheckoutScreen() {
         },
       };
 
-      // ONLY force a direct app launch if they specifically chose UPI.
-      // Otherwise, let Razorpay open its beautiful default modal for Cards!
       if (method === "upi") {
         checkoutOptions.method = "upi";
       }
 
-      // 6. Fire up the native UI handler
+      // Fire up the native integration handler
       openCheckout(checkoutOptions, {
         onSuccess: async (data) => {
           try {
@@ -147,6 +141,10 @@ export default function CheckoutScreen() {
             );
 
             if (verificationResponse.data.success) {
+              // 🚀 MODIFIED FIXED STEP: Stash active order ID natively right into device memory
+              // The main Menu page reads this key to mount your live tracking bottom sheet banner!
+              await SecureStore.setItemAsync("active_order_id", order.id);
+
               clearCart();
               router.replace("/(customer)/success");
             }
@@ -165,7 +163,6 @@ export default function CheckoutScreen() {
         },
         onFailure: (error: any) => {
           setIsProcessing(false);
-          // Safely check if error exists to prevent crash
           const errorMessage =
             error?.description ||
             error?.message ||
@@ -174,18 +171,16 @@ export default function CheckoutScreen() {
         },
       });
     } catch (err: any) {
-      // --- REVEAL EXACT ZOD ERROR ---
       if (err.response && err.response.data) {
         console.error(
           "BACKEND REJECTION DETAILS:",
           JSON.stringify(err.response.data, null, 2)
         );
 
-        // Extract Zod validation messages if they exist
         let errorMsg =
           err.response.data.message || "Invalid data sent to server";
         if (err.response.data.errors && err.response.data.errors.length > 0) {
-          errorMsg = err.response.data.errors[0].message; // Unmasks specific missing fields
+          errorMsg = err.response.data.errors[0].message;
         }
 
         Alert.alert("Validation Error", errorMsg);
@@ -279,7 +274,6 @@ export default function CheckoutScreen() {
           </Text>
         </View>
 
-        {/* --- DYNAMIC ADDRESS STATUS WARNING --- */}
         {!addressId && !loadingAddress && (
           <View className="mt-6 bg-red-50 border border-red-200 p-4 rounded-2xl flex-row items-center gap-3">
             <Ionicons name="warning-outline" size={20} color="#EF4444" />

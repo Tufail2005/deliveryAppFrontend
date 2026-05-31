@@ -2,7 +2,7 @@ import { CATEGORY_UI_CONFIG } from "@/src/constants/allCatagories";
 import { ItemCategory } from "@/src/types/catagories";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import { useLocalSearchParams, useRouter } from "expo-router"; // 👈 Integrated useLocalSearchParams
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ActiveOrderBar from "../../src/components/ActiveOrderBar"; // 🚀 1. Imported your live tracking banner
 import CategoryPill from "../../src/components/CategoryPill";
 import FloatingCartBanner from "../../src/components/FloatingCartBanner";
 import FoodGridCard, { GridFoodItem } from "../../src/components/FoodGridCard";
@@ -119,6 +120,10 @@ export default function MenuScreen() {
           const activeAddress =
             response.data.find((addr) => addr.isDefault) || response.data[0];
 
+          const homeAddress = response.data.find(
+            (addr) => addr.label?.toLowerCase() === "home"
+          );
+          const defaultAddress = homeAddress || response.data[0];
           setSelectedAddressLabel(
             activeAddress.label ||
               `${activeAddress.street}, ${activeAddress.city}`
@@ -137,7 +142,7 @@ export default function MenuScreen() {
     fetchAddresses();
   }, []);
 
-  // Update selected address when params change (after selecting from addresses page)
+  // Update selected address when params change
   useEffect(() => {
     if (params.selectedAddressLabel) {
       setSelectedAddressLabel(params.selectedAddressLabel);
@@ -209,13 +214,11 @@ export default function MenuScreen() {
 
   const { cartItems, addToCart, updateQuantity, removeFromCart } = useCart();
 
-  // 2. Add a helper function to find an item's quantity in the cart
   const getItemQuantity = (itemId: string) => {
     const cartItem = cartItems.find((i: any) => i.id === itemId);
     return cartItem ? cartItem.quantity : 0;
   };
 
-  // 3. Add increment/decrement handlers
   const handleIncrease = (item: GridFoodItem) => {
     const currentQty = getItemQuantity(item.id);
     updateQuantity(item.id, currentQty + 1);
@@ -289,6 +292,7 @@ export default function MenuScreen() {
           </Text>
 
           {/* 2. Dispatches selectable flag configurations directly down routing payload metrics */}
+          
           <TouchableOpacity
             onPress={() =>
               router.push({
@@ -299,7 +303,6 @@ export default function MenuScreen() {
             className="mt-3 flex-row items-center gap-2"
           >
             <Text className="text-base font-bold text-text">
-              {/* 3. Render dynamically returned address selection state fields, fallback to original mockup placeholder string */}
               {selectedAddressLabel || "Select location"}
             </Text>
             <Ionicons name="chevron-down" size={18} color="#0D0D0D" />
@@ -367,7 +370,6 @@ export default function MenuScreen() {
         </View>
       )}
 
-      {/* Global / 'All' Feed Category Container */}
       {activeCategory === "all" && (
         <View className="mt-8">
           <View className="flex-row items-center justify-between px-0 mb-4">
@@ -418,7 +420,6 @@ export default function MenuScreen() {
         </View>
       )}
 
-      {/* Specific Query Category Container */}
       {activeCategory !== "all" && (
         <View className="mt-8">
           <View className="flex-row items-center justify-between px-0 mb-4">
@@ -447,11 +448,9 @@ export default function MenuScreen() {
                   className="mr-4 w-[190px]"
                   onPress={() => handleOpenItem(item)}
                   onAdd={quickAdd}
-                  // --- NEW PROPS ADDED HERE ---
                   cartQuantity={getItemQuantity(item.id)}
                   onIncrease={handleIncrease}
                   onDecrease={handleDecrease}
-                  // ----------------------------
                 />
               ))
             ) : (
@@ -526,6 +525,9 @@ export default function MenuScreen() {
       />
 
       <FloatingCartBanner />
+
+      {/* 🚀 2. MOUNTED HERE: Renders the active order bar beautifully over your list layout layer */}
+      <ActiveOrderBar />
     </SafeAreaView>
   );
 }

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import * as Location from "expo-location"; // 👈 1. Import Expo Location
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
@@ -26,7 +26,11 @@ export default function AddAddressScreen() {
   const [apartment, setApartment] = useState("");
   const [label, setLabel] = useState("home");
 
-  // 2. State hooks to store the real physical hardware coordinates
+  // 🚀 FIXED: Dynamic fields for City and State instead of hardcoded strings
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+
+  // State hooks to store physical coordinates
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [fetchingLocation, setFetchingLocation] = useState(false);
@@ -35,12 +39,14 @@ export default function AddAddressScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 3. Automatically query device position on screen mount
+  // Automatically query device position on screen mount and reverse-geocode address
   useEffect(() => {
     const getDeviceLocation = async () => {
       try {
         setFetchingLocation(true);
 
+        setError(null);
+        
         // Request runtime permission from iOS/Android operating systems
         const { status } = await Location.requestForegroundPermissionsAsync();
 
@@ -51,6 +57,7 @@ export default function AddAddressScreen() {
           // Fallback placeholders if user blocks access
           setLatitude(26.52);
           setLongitude(93.96);
+          setError("Permission to access location was denied. Please fill in details manually.");
           return;
         }
 
@@ -59,11 +66,30 @@ export default function AddAddressScreen() {
           accuracy: Location.Accuracy.Balanced,
         });
 
-        setLatitude(currentPosition.coords.latitude);
-        setLongitude(currentPosition.coords.longitude);
+        const lat = currentPosition.coords.latitude;
+        const lng = currentPosition.coords.longitude;
+
+        setLatitude(lat);
+        setLongitude(lng);
+
+        // 🚀 SMART ADDITION: Convert lat/lng coordinates into a readable address structure
+        const geocodeResults = await Location.reverseGeocodeAsync({
+          latitude: lat,
+          longitude: lng,
+        });
+
+        if (geocodeResults.length > 0) {
+          const place = geocodeResults[0];
+          // Dynamically populate fields with fallback options
+          setCity(place.city || place.subregion || place.district || "");
+          setState(place.region || "");
+          if (place.postalCode) {
+            setZipCode(place.postalCode);
+          }
+        }
       } catch (err) {
-        console.error("Error reading device coordinates:", err);
-        setError("Could not retrieve GPS coordinates automatically.");
+        console.error("Error reading device coordinates or geocoding:", err);
+        setError("Could not retrieve GPS location automatically.");
       } finally {
         setFetchingLocation(false);
       }
@@ -73,8 +99,8 @@ export default function AddAddressScreen() {
   }, []);
 
   const handleSaveLocation = async () => {
-    if (!street.trim() || !zipCode.trim()) {
-      setError("Please fill out your street address and post code.");
+    if (!street.trim() || !city.trim() || !state.trim() || !zipCode.trim()) {
+      setError("Please complete all address details before saving.");
       return;
     }
 
@@ -95,17 +121,16 @@ export default function AddAddressScreen() {
         ? `Apt ${apartment.trim()}, ${street.trim()}`
         : street.trim();
 
-      // 4. Injected real coordinate numbers directly into the data payload
+      // Dynamic data payload containing parsed user inputs
       const payload = {
         street: formattedStreet,
-        city: "Golaghat",
-        state: "Assam",
+        city: city.trim(),         
+        state: state.trim(),
         zipCode: zipCode.trim(),
         country: "India",
-        label: label.charAt(0).toUpperCase() + label.slice(1),
-        latitude: latitude ?? 26.52, // Submits real lat, falls back safely if hook is slow
-        longitude: longitude ?? 93.96, // Submits real lng, falls back safely if hook is slow
-        isDefault: true,
+        label: label.charAt(0).toUpperCase() + label.slice(1), 
+        latitude: latitude ?? 26.52,  
+        longitude: longitude ?? 93.96 
       };
 
       const response = await axios.post(`${baseUrl}/user/address`, payload, {
@@ -174,19 +199,23 @@ export default function AddAddressScreen() {
 
         <View className="flex-row gap-4">
           <View className="flex-1">
+            {/* 🚀 FIXED: Editable City Input with a clear placeholder text */}
             <FormInput
               label="City"
-              placeholder="Golaghat"
-              value="Golaghat"
-              editable={false}
+              placeholder="Enter City"
+              value={city}
+              onChangeText={setCity}
+              editable={!submitting}
             />
           </View>
           <View className="flex-1">
+            {/* 🚀 FIXED: Editable State Input with a clear placeholder text */}
             <FormInput
               label="State"
-              placeholder="Assam"
-              value="Assam"
-              editable={false}
+              placeholder="Enter State"
+              value={state}
+              onChangeText={setState}
+              editable={!submitting}
             />
           </View>
         </View>
