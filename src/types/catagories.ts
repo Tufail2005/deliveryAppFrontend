@@ -7,7 +7,6 @@ export enum ItemCategory {
     MOMO = "MOMO",
     CHINESE = "CHINESE",
     DESSERTS = "DESSERTS",
-    WRAP = "WRAP",
-    SANDWICH = "SANDWICH",
-    OTHERS = "OTHERS",
+    ROLLS = "ROLLS",
+    SANDWICH = "SANDWICH"
 }

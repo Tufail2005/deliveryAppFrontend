@@ -26,16 +26,16 @@ export const CATEGORY_UI_CONFIG = {
         title: "Cakes",
         image: require("../../assets/categories/cake.png"),
     },
-    [ItemCategory.WRAP]: {
-        title: "Wraps",
-        image: require("../../assets/categories/wrap.png"),
+    [ItemCategory.ROLLS]: { 
+        title: "Rolls",
+        image: require("../../assets/categories/wrap.png"), 
     },
     [ItemCategory.SANDWICH]: {
         title: "Sandwich",
         image: require("../../assets/categories/sandwich.png"),
     },
-    [ItemCategory.OTHERS]: {
-        title: "Others",
-        icon: "fast-food" as const, // Uses an Ionicon if no image exists
-    },
+    // [ItemCategory.OTHERS]: {
+    //     title: "Others",
+    //     icon: "fast-food" as const,
+    // },
 } as const;

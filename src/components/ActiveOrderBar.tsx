@@ -3,6 +3,23 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+// 🚀 Optional: If you use jwt-decode library, import it here. 
+// Otherwise we can easily parse it natively using simple JS split methods:
+const parseUserIdFromToken = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload).userId; // Extracts the exact ID signed by your backend Express route
+  } catch (e) {
+    return null;
+  }
+};
 
 export default function ActiveOrderBar() {
   const router = useRouter();
@@ -11,8 +28,20 @@ export default function ActiveOrderBar() {
   useEffect(() => {
     const checkOngoingOrder = async () => {
       try {
-        // Read the stashed memory string key we assigned during checkout success
-        const savedId = await SecureStore.getItemAsync("active_order_id");
+        const token = await SecureStore.getItemAsync("auth_token");
+        if (!token) {
+          setActiveOrderId(null);
+          return;
+        }
+
+        const userId = parseUserIdFromToken(token);
+        if (!userId) {
+          setActiveOrderId(null);
+          return;
+        }
+
+        // 🚀 FIXED: Reads the user-specific storage key string!
+        const savedId = await SecureStore.getItemAsync(`active_order_id_${userId}`);
         setActiveOrderId(savedId);
       } catch (err) {
         console.error("Error reading active order ID from SecureStore:", err);
@@ -21,21 +50,19 @@ export default function ActiveOrderBar() {
 
     checkOngoingOrder();
     
-    // Check again every 5 seconds in case the order status updates or finishes
     const interval = setInterval(checkOngoingOrder, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // If there is no active order running, render absolutely nothing!
   if (!activeOrderId) return null;
 
   return (
     <View style={styles.container} className="absolute bottom-6 left-6 right-6 z-50">
       <TouchableOpacity
-        onPress={() => router.push("/(customer)/orders")} // Routes natively to your orders layout feed screen
+        onPress={() => router.push("/(customer)/orders")} 
         activeOpacity={0.9}
         className="flex-row items-center justify-between rounded-2xl px-5 py-4 shadow-xl"
-        style={{ backgroundColor: "#FF863B" }} // Matches your primary brand accent theme color
+        style={{ backgroundColor: "#FF863B" }} 
       >
         <View className="flex-row items-center gap-3" style={{ flexDirection: "row", alignItems: "center" }}>
           <View className="bg-white/20 p-2 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 12, padding: 8 }}>
@@ -63,6 +90,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 8, // Smooth shadow mapping for Android devices
+    elevation: 8, 
   },
 });
