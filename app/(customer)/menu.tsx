@@ -88,58 +88,32 @@ export default function MenuScreen() {
 
   // Address state management
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [selectedAddressLabel, setSelectedAddressLabel] = useState<string>("Loading...");
+  const [selectedAddressLabel, setSelectedAddressLabel] =
+    useState<string>("Loading...");
   const [addressLoading, setAddressLoading] = useState(true);
 
-  // Fetch user's saved addresses EVERY TIME the screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      const fetchAddresses = async () => {
+      const fetchActiveAddress = async () => {
         try {
-          // Only show loading state if we don't already have a label
-          if (selectedAddressLabel === "Loading...") {
-            setAddressLoading(true);
-          }
+          if (selectedAddressLabel === "Loading...") setAddressLoading(true);
 
           const token = await SecureStore.getItemAsync("auth_token");
-
           if (!token || !baseUrl) {
             setSelectedAddressLabel("Select location");
             return;
           }
 
-<<<<<<< HEAD
-          const response = await axios.get<UserAddress[]>(
-            `${baseUrl}/user/addresses`,
+          // 1. Hit the endpoint
+          const response = await axios.get<UserAddress>( // 👈 Now typed as a single object, not an array []
+            `${baseUrl}/user/addresses/default`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
-=======
-        if (Array.isArray(response.data) && response.data.length > 0) {
-          setAddresses(response.data);
-          const activeAddress = response.data.find((addr) => addr.isDefault) || response.data[0];
-          setSelectedAddressLabel(
-            activeAddress.label || `${activeAddress.street}, ${activeAddress.city}`
-          );
-        } else {
-          setSelectedAddressLabel("Select location");
-        }
-      } catch (err) {
-        console.error("Failed to fetch addresses:", err);
-        setSelectedAddressLabel("Select location");
-      } finally {
-        setAddressLoading(false);
-      }
-    };
->>>>>>> 5c66706 (modiifed code for categories and ActiveOrderBar)
 
-          if (Array.isArray(response.data) && response.data.length > 0) {
-            setAddresses(response.data);
+          const activeAddress = response.data;
 
-            // 👈 DIRECT DATABASE LOOKUP
-            // Find the active address natively, fallback to index 0 just in case
-            const activeAddress =
-              response.data.find((addr) => addr.isDefault) || response.data[0];
-
+          // 2. Simply check if the object exists
+          if (activeAddress && activeAddress.id) {
             setSelectedAddressLabel(
               activeAddress.label ||
                 `${activeAddress.street}, ${activeAddress.city}`
@@ -148,15 +122,15 @@ export default function MenuScreen() {
             setSelectedAddressLabel("Select location");
           }
         } catch (err) {
-          console.error("Failed to fetch addresses:", err);
+          console.error("Failed to fetch default address:", err);
           setSelectedAddressLabel("Select location");
         } finally {
           setAddressLoading(false);
         }
       };
 
-      fetchAddresses();
-    }, []) // Keep this dependency array empty so the callback itself is cached
+      fetchActiveAddress();
+    }, [])
   );
 
   // Update selected address when params change
@@ -194,7 +168,8 @@ export default function MenuScreen() {
           throw new Error("Invalid API response format");
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to fetch items";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch items";
         console.error("Connection failed:", errorMessage);
         setError(errorMessage);
         setItems([]);
@@ -306,18 +281,12 @@ export default function MenuScreen() {
           <Text className="text-xs uppercase tracking-[0.3em] text-primary font-bold">
             Deliver to
           </Text>
-<<<<<<< HEAD
 
-          {/* 2. Dispatches selectable flag configurations directly down routing payload metrics */}
-
-=======
-          
->>>>>>> 5c66706 (modiifed code for categories and ActiveOrderBar)
           <TouchableOpacity
             onPress={() =>
               router.push({
                 pathname: "/(customer)/addresses",
-                params: { selectable: "true" }, 
+                params: { selectable: "true" },
               })
             }
             className="mt-3 flex-row items-center gap-2"
