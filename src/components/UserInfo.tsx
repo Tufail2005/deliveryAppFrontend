@@ -4,14 +4,13 @@ import { Image, Text, View } from "react-native";
 interface UserInfoProps {
   name: string;
   bio: string;
-  imageUrl: string;
 }
 
-export default function UserInfo({ name, bio, imageUrl }: UserInfoProps) {
+export default function UserInfo({ name, bio }: UserInfoProps) {
   return (
     <View className="flex-row items-center px-6 py-4 mb-4">
       <Image
-        source={{ uri: imageUrl }}
+        source={require("../../assets/images/user.png")}
         className="w-20 h-20 rounded-full bg-gray-200 mr-4"
       />
       <View>
