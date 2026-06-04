@@ -25,10 +25,11 @@ export default function AddAddressScreen() {
   const [zipCode, setZipCode] = useState("");
   const [apartment, setApartment] = useState("");
   const [label, setLabel] = useState("home");
-
-  // 🚀 FIXED: Dynamic fields for City and State instead of hardcoded strings
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
+
+  // Track original GPS text to know if the user changed the location manually
+  const [originalGpsText, setOriginalGpsText] = useState("");
 
   // State hooks to store physical coordinates
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -44,24 +45,17 @@ export default function AddAddressScreen() {
     const getDeviceLocation = async () => {
       try {
         setFetchingLocation(true);
-
         setError(null);
         
-        // Request runtime permission from iOS/Android operating systems
         const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status !== "granted") {
-          setError(
-            "Permission to access location was denied. Using default coordinates."
-          );
-          // Fallback placeholders if user blocks access
           setLatitude(26.52);
           setLongitude(93.96);
-          setError("Permission to access location was denied. Please fill in details manually.");
+          setError("Location permission denied. Please enter the address manually below.");
           return;
         }
 
-        // Grab the actual physical GPS reading
         const currentPosition = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -72,7 +66,6 @@ export default function AddAddressScreen() {
         setLatitude(lat);
         setLongitude(lng);
 
-        // 🚀 SMART ADDITION: Convert lat/lng coordinates into a readable address structure
         const geocodeResults = await Location.reverseGeocodeAsync({
           latitude: lat,
           longitude: lng,
@@ -80,12 +73,17 @@ export default function AddAddressScreen() {
 
         if (geocodeResults.length > 0) {
           const place = geocodeResults[0];
-          // Dynamically populate fields with fallback options
-          setCity(place.city || place.subregion || place.district || "");
-          setState(place.region || "");
+          const calculatedCity = place.city || place.subregion || place.district || "";
+          const calculatedState = place.region || "";
+          
+          setCity(calculatedCity);
+          setState(calculatedState);
           if (place.postalCode) {
             setZipCode(place.postalCode);
           }
+
+          // Lock a reference string of the GPS text setup
+          setOriginalGpsText(`${calculatedCity}, ${calculatedState}`.toLowerCase().trim());
         }
       } catch (err) {
         console.error("Error reading device coordinates or geocoding:", err);
@@ -117,11 +115,39 @@ export default function AddAddressScreen() {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
+      let finalLatitude = latitude;
+      let finalLongitude = longitude;
+
+      const currentFormText = `${city.trim()}, ${state.trim()}`.toLowerCase().trim();
+
+      // 🚀 FIXED: If user edited the address text manually to order for their sister,
+      // bypass the phone's hardware GPS and find the real coordinates of the typed town!
+      if (currentFormText !== originalGpsText || !finalLatitude || !finalLongitude) {
+        const lookupString = `${street.trim()}, ${city.trim()}, ${state.trim()}, ${zipCode.trim()}, India`;
+        
+        const forwardGeocodeResults = await Location.geocodeAsync(lookupString);
+        
+        if (forwardGeocodeResults.length > 0) {
+          finalLatitude = forwardGeocodeResults[0].latitude;
+          finalLongitude = forwardGeocodeResults[0].longitude;
+        } else {
+          // Try a broader search with just city, state, and zip code if street address lookup fails
+          const broaderLookupString = `${city.trim()}, ${state.trim()}, ${zipCode.trim()}, India`;
+          const broaderResults = await Location.geocodeAsync(broaderLookupString);
+          
+          if (broaderResults.length > 0) {
+            finalLatitude = broaderResults[0].latitude;
+            finalLongitude = broaderResults[0].longitude;
+          } else {
+            throw new Error("Could not pinpoint the geographic coordinates for this address. Please double-check your spelling.");
+          }
+        }
+      }
+
       const formattedStreet = apartment.trim()
         ? `Apt ${apartment.trim()}, ${street.trim()}`
         : street.trim();
 
-      // Dynamic data payload containing parsed user inputs
       const payload = {
         street: formattedStreet,
         city: city.trim(),         
@@ -129,14 +155,12 @@ export default function AddAddressScreen() {
         zipCode: zipCode.trim(),
         country: "India",
         label: label.charAt(0).toUpperCase() + label.slice(1), 
-        latitude: latitude ?? 26.52,  
-        longitude: longitude ?? 93.96 
+        latitude: finalLatitude,  
+        longitude: finalLongitude 
       };
 
       const response = await axios.post(`${baseUrl}/user/address`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.status === 201 || response.data) {
@@ -146,7 +170,7 @@ export default function AddAddressScreen() {
       console.error("Add Address Submission Crash:", err);
       setError(
         err.response?.data?.message ||
-          err.response?.data?.errors?._errors?.[0] ||
+          err.message ||
           "Failed to save address details"
       );
     } finally {
@@ -171,10 +195,19 @@ export default function AddAddressScreen() {
         </Text>
 
         {error && (
-          <View className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-4 flex-row items-center gap-3">
-            <Ionicons name="alert-circle" size={20} color="#EF4444" />
-            <Text className="text-red-700 font-semibold text-sm flex-1">
+          <View className="mt-4 bg-text-muted/10 border border-text-muted/20 rounded-2xl p-4 flex-row items-center gap-3">
+            <Ionicons name="alert-circle" size={20} color="#3E444E" />
+            <Text className="text-text font-semibold text-sm flex-1">
               {error}
+            </Text>
+          </View>
+        )}
+
+        {fetchingLocation && (
+          <View className="mt-4 bg-primary/10 rounded-2xl p-4 flex-row items-center gap-3">
+            <ActivityIndicator size="small" color="#FF863B" />
+            <Text className="text-primary font-medium text-sm">
+              Fetching current location details...
             </Text>
           </View>
         )}
@@ -199,7 +232,6 @@ export default function AddAddressScreen() {
 
         <View className="flex-row gap-4">
           <View className="flex-1">
-            {/* 🚀 FIXED: Editable City Input with a clear placeholder text */}
             <FormInput
               label="City"
               placeholder="Enter City"
@@ -209,7 +241,6 @@ export default function AddAddressScreen() {
             />
           </View>
           <View className="flex-1">
-            {/* 🚀 FIXED: Editable State Input with a clear placeholder text */}
             <FormInput
               label="State"
               placeholder="Enter State"

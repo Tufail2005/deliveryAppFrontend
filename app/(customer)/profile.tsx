@@ -211,9 +211,9 @@ export default function ProfileScreen() {
               iconColor="#0DCC7B"
             />
             <MenuItem
-              iconName="settings-outline"
-              title="Settings"
-              onPress={() => {}}
+              iconName="list-outline"
+              title="My Orders"
+              onPress={() => router.push("/(customer)/orders")}
             />
           </View>
 

@@ -18,7 +18,7 @@ const PAYMENT_METHODS = [
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const { cartItems, total, clearCart } = useCart();
+  const { cartItems, clearCart } = useCart();
   const { openCheckout, RazorpayUI } = useRazorpay();
 
   const [method, setMethod] = useState("upi");
@@ -27,6 +27,14 @@ export default function CheckoutScreen() {
   // --- Dynamic Address State ---
   const [addressId, setAddressId] = useState<string | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(true);
+
+  // --- Backend Calculated Total ---
+  const [breakdown, setBreakdown] = useState({
+    subTotal: 0,
+    deliveryFee: 0,
+    taxAmount: 0,
+    totalAmount: 0,
+  });
 
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -45,6 +53,28 @@ export default function CheckoutScreen() {
         // Bypasses the array map completely
         if (activeAddress && activeAddress.id) {
           setAddressId(activeAddress.id);
+
+          // Fetch the calculated prices from backend
+          const formattedItems = cartItems.map((item) => ({
+            menuItemId: item.id,
+            quantity: Number(item.quantity),
+          }));
+
+          const payload = {
+            restaurantId: cartItems[0].restaurantId,
+            addressId: activeAddress.id,
+            items: formattedItems,
+          };
+
+          const priceRes = await axios.post(
+            `${API_URL}/order/calculate-price`,
+            payload,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          setBreakdown(priceRes.data.breakdown);
         }
       } catch (error) {
         console.error("Could not fetch active address:", error);
@@ -294,9 +324,24 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       <View className="border-t border-gray-100 bg-white px-6 pt-5 pb-14">
-        <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-sm text-text-muted">Total Bill Amount</Text>
-          <Text className="text-2xl font-bold text-text">₹{total}</Text>
+        <View className="mb-4 space-y-2">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm text-text-muted">Subtotal</Text>
+            <Text className="text-sm text-text">₹{breakdown.subTotal}</Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm text-text-muted">Delivery Fee</Text>
+            <Text className="text-sm text-text">₹{breakdown.deliveryFee}</Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm text-text-muted">Tax</Text>
+            <Text className="text-sm text-text">₹{breakdown.taxAmount}</Text>
+          </View>
+          <View className="h-px bg-gray-200 my-2" />
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-semibold text-text-muted">Total Bill Amount</Text>
+            <Text className="text-2xl font-bold text-text">₹{breakdown.totalAmount}</Text>
+          </View>
         </View>
         <PrimaryButton
           title={
