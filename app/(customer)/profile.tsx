@@ -193,12 +193,12 @@ export default function ProfileScreen() {
             />
             {/* <MenuItem iconName="heart-outline" title="Favourite" onPress={() => {}} iconColor="#FF4B4B" /> */}
             {/* <MenuItem iconName="notifications-outline" title="Notifications" onPress={() => {}} /> */}
-            <MenuItem
+            {/* <MenuItem
               iconName="card-outline"
               title="Payment Method"
               onPress={() => router.push("/(customer)/checkout")}
               iconColor="#0DB8F3"
-            />
+            /> */}
           </View>
 
           {/* Group 3: Support & Settings */}
